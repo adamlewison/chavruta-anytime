@@ -3,9 +3,9 @@ import logoSrc from "../../../public/ca-logo.png";
 import { cn } from "@/lib/utils";
 
 const sizeMap = {
-  sm: 28,
-  md: 36,
-  lg: 56,
+  sm: 46,
+  md: 58,
+  lg: 80,
 } as const;
 
 export function Logo({

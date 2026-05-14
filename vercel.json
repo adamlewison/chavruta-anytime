@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/session-reminders",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/weekly-match-digest",
