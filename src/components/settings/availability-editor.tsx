@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GridPicker } from "@/components/availability/grid-picker";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -41,14 +40,25 @@ export function AvailabilityEditor({
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">Availability</CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Your timezone: <strong>{timezone || "unknown"}</strong>
+    <section className="space-y-5 border-t pt-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-foreground">
+            Availability
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Mark when you are usually available for learning.
+          </p>
+        </div>
+        <p className="text-xs text-muted-foreground sm:pt-1">
+          Timezone:{" "}
+          <span className="font-medium text-foreground">
+            {timezone || "unknown"}
+          </span>
         </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
+      </div>
+
+      <div className="space-y-4">
         <GridPicker
           value={bitmap}
           onChange={setBitmap}
@@ -68,7 +78,7 @@ export function AvailabilityEditor({
             "Save Availability"
           )}
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

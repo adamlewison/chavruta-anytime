@@ -12,6 +12,7 @@ import { toast } from "sonner";
 interface Message {
   id: string;
   senderId: string;
+  senderName: string | null;
   body: string;
   createdAt: string;
 }
@@ -66,6 +67,7 @@ export function ChaburaGroupChat({
       const optimisticMsg: Message = {
         id: `opt-${Date.now()}`,
         senderId: currentUserId,
+        senderName: null,
         body: text,
         createdAt: new Date().toISOString(),
       };
@@ -100,9 +102,15 @@ export function ChaburaGroupChat({
               key={msg.id}
               className={cn("flex", isMe ? "justify-end" : "justify-start")}
             >
+              <div className="max-w-[75%] flex flex-col gap-0.5">
+                {!isMe && (
+                  <p className="text-[11px] font-medium text-muted-foreground px-1">
+                    {msg.senderName ?? "Member"}
+                  </p>
+                )}
               <div
                 className={cn(
-                  "max-w-[75%] rounded-2xl px-4 py-2 text-sm",
+                  "rounded-2xl px-4 py-2 text-sm",
                   isMe
                     ? "bg-accent text-white rounded-br-sm"
                     : "bg-muted text-foreground rounded-bl-sm",
@@ -120,6 +128,7 @@ export function ChaburaGroupChat({
                     minute: "2-digit",
                   })}
                 </p>
+              </div>
               </div>
             </div>
           );

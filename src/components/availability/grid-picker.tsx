@@ -7,7 +7,9 @@ import { cn } from "@/lib/utils";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const SLOTS_PER_DAY = 48;
-const TOTAL_BITS = 336;
+// Display window: 6am (slot 12) → 11pm (slot 46) inclusive
+const DISPLAY_START = 12;
+const DISPLAY_END = 46;
 
 function formatHour(slot: number): string {
   const hour = Math.floor(slot / 2);
@@ -21,6 +23,7 @@ interface GridPickerProps {
   onChange: (bitmap: Uint8Array) => void;
   timezone: string;
   readonly?: boolean;
+  showFooter?: boolean;
   className?: string;
 }
 
@@ -29,6 +32,7 @@ export function GridPicker({
   onChange,
   timezone,
   readonly = false,
+  showFooter = true,
   className,
 }: GridPickerProps) {
   const [activeDay, setActiveDay] = useState(0);
@@ -93,15 +97,11 @@ export function GridPicker({
           }
         }
       } else if (preset === "late-night") {
-        // Every day, 10pm-1am (slots 44-47 + 0-1)
+        // Every day, 10pm-11pm (slots 44-46, within display window)
         for (let day = 0; day < 7; day++) {
-          for (let slot = 44; slot <= 47; slot++) {
+          for (let slot = 44; slot <= DISPLAY_END; slot++) {
             setBit(bitmap, day * SLOTS_PER_DAY + slot);
           }
-          // 0-1 of next day (wrap for Saturday → Sunday)
-          const nextDay = (day + 1) % 7;
-          setBit(bitmap, nextDay * SLOTS_PER_DAY + 0);
-          setBit(bitmap, nextDay * SLOTS_PER_DAY + 1);
         }
       }
       onChange(bitmap);
@@ -110,14 +110,15 @@ export function GridPicker({
   );
 
   const renderDayColumn = (dayIndex: number, isMobile: boolean) => (
-    <div key={dayIndex} className={cn("flex flex-col", isMobile && "min-w-full snap-center")}>
+    <div key={dayIndex} className={cn("flex flex-col", isMobile ? "min-w-full snap-center" : "flex-1 min-w-0")}>
       {!isMobile && (
         <div className="text-center text-xs font-medium text-muted-foreground pb-1">
           {DAYS[dayIndex]}
         </div>
       )}
       <div className="flex flex-col gap-px">
-        {Array.from({ length: SLOTS_PER_DAY }, (_, slotIndex) => {
+        {Array.from({ length: DISPLAY_END - DISPLAY_START + 1 }, (_, i) => {
+          const slotIndex = DISPLAY_START + i;
           const bitIndex = dayIndex * SLOTS_PER_DAY + slotIndex;
           const isSet = getBit(value, bitIndex);
           const isHour = slotIndex % 2 === 0;
@@ -191,17 +192,26 @@ export function GridPicker({
       {/* Desktop: All 7 columns */}
       <div className="hidden md:block">
         <div className="flex gap-px rounded-lg border border-border overflow-hidden max-h-[500px] overflow-y-auto">
-          {/* Hour labels */}
-          <div className="flex flex-col pt-5">
-            {Array.from({ length: SLOTS_PER_DAY }, (_, i) => (
-              <div key={i} className="h-[14px] flex items-center">
-                {i % 2 === 0 && (
-                  <span className="text-[9px] text-muted-foreground w-8 text-right pr-1">
-                    {formatHour(i)}
-                  </span>
-                )}
-              </div>
-            ))}
+          {/* Hour labels — same structure as day columns so rows stay in sync */}
+          <div className="flex flex-col shrink-0">
+            {/* Invisible spacer matching the day-name header height */}
+            <div className="text-center text-xs font-medium pb-1 invisible select-none" aria-hidden>
+              X
+            </div>
+            <div className="flex flex-col gap-px">
+              {Array.from({ length: DISPLAY_END - DISPLAY_START + 1 }, (_, i) => {
+                const slotIndex = DISPLAY_START + i;
+                return (
+                  <div key={slotIndex} className="h-[14px] flex items-center">
+                    {slotIndex % 2 === 0 && (
+                      <span className="text-[9px] text-muted-foreground w-8 text-right pr-1">
+                        {formatHour(slotIndex)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
           {/* Day columns */}
           {Array.from({ length: 7 }, (_, dayIndex) => renderDayColumn(dayIndex, false))}
@@ -209,7 +219,7 @@ export function GridPicker({
       </div>
 
       {/* Presets */}
-      {!readonly && (
+      {!readonly && showFooter && (
         <div className="flex flex-wrap gap-2 justify-center">
           <Button variant="ghost" size="sm" className="text-xs" onClick={() => applyPreset("weekday-evenings")}>
             Weekday evenings (7–10pm)
@@ -218,7 +228,7 @@ export function GridPicker({
             Weekday mornings (6–9am)
           </Button>
           <Button variant="ghost" size="sm" className="text-xs" onClick={() => applyPreset("late-night")}>
-            Late-night (10pm–1am)
+            Late-night (10pm–11pm)
           </Button>
           <Button variant="ghost" size="sm" className="text-xs text-destructive" onClick={() => applyPreset("clear")}>
             Clear all
@@ -227,7 +237,7 @@ export function GridPicker({
       )}
 
       {/* Microcopy */}
-      {!readonly && (
+      {!readonly && showFooter && (
         <p className="text-xs text-muted-foreground text-center">
           Don&apos;t worry about being exact — we&apos;ll match you with people whose times are
           close to yours, even if they&apos;re 30 minutes off.

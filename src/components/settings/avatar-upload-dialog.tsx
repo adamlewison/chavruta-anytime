@@ -2,8 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { toast } from "sonner";
-import { uploadFiles } from "@/lib/uploadthing";
+import type { PutBlobResult } from "@vercel/blob";
 import { resizeImage } from "@/lib/image-resize";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +28,7 @@ export function AvatarUploadDialog({
   name,
 }: AvatarUploadDialogProps) {
   const router = useRouter();
+  const { update } = useSession();
   const [open, setOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImage);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -35,12 +37,13 @@ export function AvatarUploadDialog({
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const finishWithUrl = (url: string) => {
+  const finishWithUrl = async (url: string) => {
     setPreviewUrl(url);
     setSelectedFile(null);
     if (localPreview) URL.revokeObjectURL(localPreview);
     setLocalPreview(null);
     toast.success("Profile picture updated");
+    await update();
     router.refresh();
     setTimeout(() => setOpen(false), 400);
   };
@@ -73,15 +76,17 @@ export function AvatarUploadDialog({
     if (!selectedFile) return;
     setIsUploading(true);
     try {
-      const res = await uploadFiles("avatar", { files: [selectedFile] });
-      const url = res[0]?.ufsUrl;
-      if (url) {
-        finishWithUrl(url);
-      } else {
-        toast.error("Upload completed but no URL was returned");
+      const response = await fetch(
+        `/api/avatar/upload?filename=${encodeURIComponent(selectedFile.name)}`,
+        { method: "POST", body: selectedFile },
+      );
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
       }
+      const blob = (await response.json()) as PutBlobResult;
+      finishWithUrl(blob.url);
     } catch (err) {
-      console.error("startUpload threw:", err);
+      console.error("Upload threw:", err);
       toast.error("Upload failed");
     } finally {
       setIsUploading(false);
@@ -107,7 +112,7 @@ export function AvatarUploadDialog({
           className="group relative inline-flex"
           aria-label="Change profile picture"
         >
-          <Avatar className="h-20 w-20">
+          <Avatar className="h-28 w-28">
             <AvatarImage
               src={previewUrl ?? undefined}
               alt={name ?? "Profile"}
@@ -117,7 +122,7 @@ export function AvatarUploadDialog({
             </AvatarFallback>
           </Avatar>
           <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity group-hover:opacity-100">
-            <Camera className="h-6 w-6" />
+            <Camera className="h-7 w-7" />
           </span>
         </button>
       </DialogTrigger>

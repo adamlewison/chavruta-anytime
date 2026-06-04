@@ -45,6 +45,20 @@ export const conversationTypeEnum = pgEnum("conversation_type", [
   "chabura",
 ]);
 
+export const notificationChannelEnum = pgEnum("notification_channel", [
+  "in_app",
+  "email",
+  "push",
+]);
+
+export const attendanceStatusEnum = pgEnum("attendance_status", [
+  "invited",
+  "accepted",
+  "attended",
+  "missed",
+  "cancelled",
+]);
+
 export const notificationTypeEnum = pgEnum("notification_type", [
   "connection_request",
   "connection_accepted",

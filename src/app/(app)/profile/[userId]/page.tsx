@@ -1,28 +1,46 @@
 import type { Metadata } from "next";
 import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { users, userSubjects, subjects } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  users,
+  userSubjects,
+  subjects,
+  connections,
+  conversationMembers,
+  conversations,
+} from "@/db/schema";
+import { eq, and, or, ne, asc } from "drizzle-orm";
+import { expandToUtcWeek, overlap, getNextSundayUtc } from "@/lib/availability";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Globe, BookOpen, Clock } from "lucide-react";
-import { languageName } from "@/lib/languages";
-import { popcountHours } from "@/lib/availability";
+import { Separator } from "@/components/ui/separator";
+import { Heatmap } from "@/components/availability";
+import { ConnectButton } from "@/components/matching/connect-button";
+import { ProfileHeader } from "@/components/profile/profile-header";
+import { learningSessions } from "@/db/schema";
+import { SessionsTable } from "@/components/sessions/sessions-table";
+import { BookOpen, Plus } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Profile — ChavrutaAnytime",
+  title: "User Profile — ChavrutaAnytime",
 };
 
-export default async function PublicProfilePage({
+export default async function UserProfilePage({
   params,
 }: {
   params: Promise<{ userId: string }>;
 }) {
   const session = await auth();
+
   if (!session?.user?.id) {
     redirect("/sign-in");
+  }
+
+  if (!session.user.onboardedAt) {
+    redirect("/onboarding");
   }
 
   const { userId } = await params;
@@ -31,7 +49,8 @@ export default async function PublicProfilePage({
     redirect("/profile");
   }
 
-  let user: {
+  let viewedUser: {
+    id: string;
     name: string | null;
     image: string | null;
     bio: string | null;
@@ -41,11 +60,46 @@ export default async function PublicProfilePage({
     availability: Buffer | null;
   } | null = null;
 
-  let subjectsList: Array<{ name: string }> = [];
+  let viewedUserSubjects: Array<{
+    name: string;
+    hebrewName: string | null;
+  }> = [];
+
+  let currentUser: {
+    availability: Buffer | null;
+    timezone: string | null;
+  } | null = null;
+
+  let overlapData: {
+    exactHours: number;
+    nearHours: number;
+    strictMask: Uint8Array;
+    nearMask: Uint8Array;
+  } | null = null;
+
+  let connectionState:
+    | "none"
+    | "pending_sent"
+    | "pending_received"
+    | "accepted" = "none";
+  let connectionId: string | undefined;
+  let conversationId: string | undefined;
+
+  let sharedSessions: Array<{
+    id: string;
+    title: string | null;
+    status: string;
+    createdById: string;
+    rrule: string | null;
+    dtstart: Date | null;
+    durationMin: number | null;
+    timezone: string | null;
+  }> = [];
 
   try {
-    const [row] = await db()
+    const [viewedUserRow] = await db()
       .select({
+        id: users.id,
         name: users.name,
         image: users.image,
         bio: users.bio,
@@ -57,143 +111,201 @@ export default async function PublicProfilePage({
       .from(users)
       .where(eq(users.id, userId));
 
-    if (!row) notFound();
-    user = row;
+    if (!viewedUserRow) {
+      notFound();
+    }
 
-    subjectsList = await db()
-      .select({ name: subjects.name })
+    viewedUser = viewedUserRow;
+
+    const subjectsData = await db()
+      .select({
+        name: subjects.name,
+        hebrewName: subjects.hebrewName,
+      })
       .from(userSubjects)
       .innerJoin(subjects, eq(userSubjects.subjectId, subjects.id))
       .where(eq(userSubjects.userId, userId));
+
+    viewedUserSubjects = subjectsData;
+
+    const [currentUserRow] = await db()
+      .select({
+        availability: users.availability,
+        timezone: users.timezone,
+      })
+      .from(users)
+      .where(eq(users.id, session.user.id));
+
+    currentUser = currentUserRow || null;
+
+    if (
+      currentUser?.availability &&
+      currentUser?.timezone &&
+      viewedUser.availability &&
+      viewedUser.timezone
+    ) {
+      const weekStart = getNextSundayUtc();
+      const currentUtc = expandToUtcWeek(
+        new Uint8Array(currentUser.availability),
+        currentUser.timezone,
+        weekStart,
+      );
+      const viewedUtc = expandToUtcWeek(
+        new Uint8Array(viewedUser.availability),
+        viewedUser.timezone,
+        weekStart,
+      );
+      overlapData = overlap(currentUtc, viewedUtc);
+    }
+
+    // Look up connection state
+    const [conn] = await db()
+      .select()
+      .from(connections)
+      .where(
+        or(
+          and(
+            eq(connections.requesterId, session.user.id),
+            eq(connections.addresseeId, userId),
+          ),
+          and(
+            eq(connections.requesterId, userId),
+            eq(connections.addresseeId, session.user.id),
+          ),
+        ),
+      );
+
+    if (conn) {
+      connectionId = conn.id;
+      if (conn.status === "accepted") {
+        connectionState = "accepted";
+
+        // DM conversation + sessions in parallel
+        const [myMemberships, sessionRows] = await Promise.all([
+          db()
+            .select({ conversationId: conversationMembers.conversationId })
+            .from(conversationMembers)
+            .innerJoin(
+              conversations,
+              and(
+                eq(conversations.id, conversationMembers.conversationId),
+                eq(conversations.type, "dm"),
+              ),
+            )
+            .where(eq(conversationMembers.userId, session.user.id)),
+          db()
+            .select({
+              id: learningSessions.id,
+              title: learningSessions.title,
+              status: learningSessions.status,
+              createdById: learningSessions.createdById,
+              rrule: learningSessions.rrule,
+              dtstart: learningSessions.dtstart,
+              durationMin: learningSessions.durationMin,
+              timezone: learningSessions.timezone,
+            })
+            .from(learningSessions)
+            .where(
+              and(
+                eq(learningSessions.chavrutaPairId, conn.id),
+                ne(learningSessions.status, "cancelled"),
+              ),
+            )
+            .orderBy(asc(learningSessions.createdAt)),
+        ]);
+
+        for (const m of myMemberships) {
+          const [other] = await db()
+            .select()
+            .from(conversationMembers)
+            .where(
+              and(
+                eq(conversationMembers.conversationId, m.conversationId),
+                eq(conversationMembers.userId, userId),
+              ),
+            );
+          if (other) {
+            conversationId = m.conversationId;
+            break;
+          }
+        }
+
+        if (sessionRows.length > 0) {
+          sharedSessions = sessionRows;
+        }
+      } else if (conn.status === "pending") {
+        connectionState =
+          conn.requesterId === session.user.id
+            ? "pending_sent"
+            : "pending_received";
+      }
+    }
   } catch (error) {
-    console.error("Public profile load error:", error);
+    console.error("User profile query error:", error);
     notFound();
   }
 
-  if (!user) notFound();
-
-  const initials =
-    user.name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2) || "?";
-
-  // Availability summary — aggregate hours only, no exact bitmap exposure (spec §8.1 /profile/[userId])
-  let availHoursPerWeek: number | null = null;
-  let availDaySummary: string | null = null;
-
-  if (user.availability) {
-    const bitmap = new Uint8Array(user.availability);
-    availHoursPerWeek = popcountHours(bitmap);
-
-    // Coarse day-of-week summary: which days have any set bits?
-    // Bit layout: bit i = day floor(i/48) + slot (i%48). Day 0=Sun, 6=Sat.
-    const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const activeDays: string[] = [];
-    for (let day = 0; day < 7; day++) {
-      let hasSlot = false;
-      for (let slot = 0; slot < 48; slot++) {
-        const bitIndex = day * 48 + slot;
-        const byteIndex = Math.floor(bitIndex / 8);
-        const bitOffset = 7 - (bitIndex % 8);
-        if (bitmap[byteIndex] & (1 << bitOffset)) {
-          hasSlot = true;
-          break;
-        }
-      }
-      if (hasSlot) activeDays.push(DAY_NAMES[day]);
-    }
-
-    if (activeDays.length > 0) {
-      // Group consecutive days
-      const weekdays = activeDays.filter((d) =>
-        ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(d),
-      );
-      const weekend = activeDays.filter((d) => ["Sat", "Sun"].includes(d));
-
-      const parts: string[] = [];
-      if (weekdays.length >= 4) parts.push("most weekdays");
-      else if (weekdays.length > 0) parts.push(`${weekdays.join(", ")}`);
-      if (weekend.length === 2) parts.push("weekends");
-      else if (weekend.length === 1) parts.push(weekend[0]);
-      availDaySummary = `Available ${parts.join(" & ")}`;
-    }
+  if (!viewedUser) {
+    notFound();
   }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Profile</h1>
+      <ProfileHeader
+        name={viewedUser.name}
+        image={viewedUser.image}
+        bio={viewedUser.bio}
+        country={viewedUser.country}
+        languages={viewedUser.languages}
+      />
 
-      {/* Avatar & Name */}
-      <div className="flex flex-col items-center text-center space-y-3">
-        <Avatar className="h-24 w-24">
-          <AvatarImage
-            src={user.image ?? undefined}
-            alt={user.name ?? "Profile"}
-          />
-          <AvatarFallback className="text-2xl">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <h2 className="text-xl font-semibold text-foreground">
-          {user.name || "Anonymous"}
-        </h2>
-      </div>
+      {/* Action buttons */}
+      <ConnectButton
+        userId={userId}
+        userName={viewedUser.name}
+        initialState={connectionState}
+        connectionId={connectionId}
+        conversationId={conversationId}
+      />
 
-      {/* Bio */}
-      {user.bio && (
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <h2 className="font-semibold text-foreground">Bio</h2>
-            <p className="text-sm text-muted-foreground whitespace-pre-line">
-              {user.bio}
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Sessions Together — only shown to accepted connections */}
+      {connectionState === "accepted" && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">
+              Sessions Together
+            </h2>
+            <Button size="sm" asChild>
+              <Link href={`/sessions/new?with=${connectionId}&type=chavruta&name=${encodeURIComponent(viewedUser.name ?? "")}`}>
+                <Plus className="h-4 w-4 mr-1" />
+                New Session
+              </Link>
+            </Button>
+          </div>
 
-      {/* Location — country only (no timezone, no post code) */}
-      {user.country && (
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <h2 className="font-semibold text-foreground">Location</h2>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4" /> {user.country}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Availability — aggregate hours + coarse day summary only (no exact bitmap) */}
-      {(availHoursPerWeek !== null || availDaySummary) && (
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <h2 className="font-semibold text-foreground">Availability</h2>
-            {availHoursPerWeek !== null && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                {availHoursPerWeek}h available per week
-              </div>
-            )}
-            {availDaySummary && (
-              <p className="text-sm text-muted-foreground">{availDaySummary}</p>
-            )}
-          </CardContent>
-        </Card>
+          {sharedSessions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No sessions yet.</p>
+          ) : (
+            <SessionsTable
+              sessions={sharedSessions}
+              currentUserId={session.user.id}
+            />
+          )}
+        </section>
       )}
 
       {/* Subjects */}
-      {subjectsList.length > 0 && (
+      {viewedUserSubjects.length > 0 && (
         <Card>
           <CardContent className="p-4 space-y-3">
-            <h2 className="font-semibold text-foreground">Subjects</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              Learning Interests
+            </h2>
             <div className="flex flex-wrap gap-2">
-              {subjectsList.map((s, idx) => (
+              {viewedUserSubjects.map((subject, idx) => (
                 <Badge key={idx} variant="secondary" className="gap-1.5">
                   <BookOpen className="h-3 w-3" />
-                  {s.name}
+                  {subject.name}
                 </Badge>
               ))}
             </div>
@@ -201,18 +313,32 @@ export default async function PublicProfilePage({
         </Card>
       )}
 
-      {/* Languages */}
-      {user.languages && user.languages.length > 0 && (
+      {/* Availability Overlap */}
+      {overlapData && (
         <Card>
           <CardContent className="p-4 space-y-3">
-            <h2 className="font-semibold text-foreground">Languages</h2>
-            <div className="flex flex-wrap gap-2">
-              {user.languages.map((lang, idx) => (
-                <Badge key={idx} variant="secondary">
-                  {languageName(lang)}
-                </Badge>
-              ))}
+            <h2 className="text-lg font-semibold text-foreground">
+              Availability Overlap
+            </h2>
+            <div className="flex gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Exact overlap: </span>
+                <span className="font-medium">
+                  {overlapData.exactHours}h/week
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Close match: </span>
+                <span className="font-medium">
+                  {overlapData.nearHours}h/week
+                </span>
+              </div>
             </div>
+            <Separator />
+            <Heatmap
+              strictMask={overlapData.strictMask}
+              nearMask={overlapData.nearMask}
+            />
           </CardContent>
         </Card>
       )}

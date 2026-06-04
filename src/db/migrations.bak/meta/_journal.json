@@ -1,0 +1,69 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1777988208273,
+      "tag": "0000_freezing_firelord",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1780402508129,
+      "tag": "0001_add_notification_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1748822400000,
+      "tag": "0002_add_study_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1748908800000,
+      "tag": "0003_add_profile_visible",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1780407519745,
+      "tag": "0004_add_matchmaking_function",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1748908801000,
+      "tag": "0005_add_calls",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1748908802000,
+      "tag": "0006_calls_occurrence_link",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1748908803000,
+      "tag": "0007_calls_drop_chabura_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1780498059292,
+      "tag": "0008_wandering_zaran",
+      "breakpoints": true
+    }
+  ]
+}

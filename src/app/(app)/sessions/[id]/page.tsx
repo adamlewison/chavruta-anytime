@@ -3,18 +3,41 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { learningSessions, sessionOccurrences, subjects, connections, users, chaburas } from "@/db/schema";
+import {
+  learningSessions,
+  sessionOccurrences,
+  subjects,
+  connections,
+  users,
+  chaburas,
+} from "@/db/schema";
 import { eq, and, gt, asc, or } from "drizzle-orm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { JoinButton } from "@/components/sessions/join-button";
-import { OccurrenceCard } from "@/components/sessions/occurrence-card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { OccurrencesTable } from "@/components/sessions/occurrences-table";
 import { Calendar, Clock, ChevronLeft, Pause, Play, X } from "lucide-react";
-import { rruleToText } from "@/lib/rrule";
-import { pauseSession, resumeSession, cancelSession } from "@/server/actions/sessions";
+import { ChangeScheduleDialog } from "@/components/sessions/change-schedule-dialog";
+import { describeSchedule } from "@/lib/rrule";
+import {
+  pauseSession,
+  resumeSession,
+  cancelSession,
+} from "@/server/actions/sessions";
 
-export const metadata: Metadata = { title: "Session — ChavrutaAnytime" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const [row] = await db()
+    .select({ title: learningSessions.title })
+    .from(learningSessions)
+    .where(eq(learningSessions.id, id));
+  return { title: row?.title ?? "Session" };
+}
 
 export default async function SessionDetailPage({
   params,
@@ -32,6 +55,7 @@ export default async function SessionDetailPage({
     title: string | null;
     status: string;
     rrule: string | null;
+    dtstart: Date | null;
     durationMin: number | null;
     timezone: string | null;
     subjectName: string | null;
@@ -42,7 +66,11 @@ export default async function SessionDetailPage({
   } | null = null;
 
   let partnerName: string | null = null;
+  let partnerImage: string | null = null;
+  let partnerId: string | null = null;
   let chaburaName: string | null = null;
+  let chaburaImage: string | null = null;
+  let chaburaSlug: string | null = null;
 
   let occurrences: Array<{
     id: string;
@@ -60,6 +88,7 @@ export default async function SessionDetailPage({
         title: learningSessions.title,
         status: learningSessions.status,
         rrule: learningSessions.rrule,
+        dtstart: learningSessions.dtstart,
         durationMin: learningSessions.durationMin,
         timezone: learningSessions.timezone,
         subjectName: subjects.name,
@@ -78,23 +107,36 @@ export default async function SessionDetailPage({
     // Resolve partner name (chavruta) or chabura name
     if (row.chavrutaPairId) {
       const [conn] = await db()
-        .select({ requesterId: connections.requesterId, addresseeId: connections.addresseeId })
+        .select({
+          requesterId: connections.requesterId,
+          addresseeId: connections.addresseeId,
+        })
         .from(connections)
         .where(eq(connections.id, row.chavrutaPairId));
       if (conn) {
-        const partnerId = conn.requesterId === session.user.id ? conn.addresseeId : conn.requesterId;
+        partnerId =
+          conn.requesterId === session.user.id
+            ? conn.addresseeId
+            : conn.requesterId;
         const [partner] = await db()
-          .select({ name: users.name })
+          .select({ name: users.name, image: users.image })
           .from(users)
           .where(eq(users.id, partnerId));
         partnerName = partner?.name ?? null;
+        partnerImage = partner?.image ?? null;
       }
     } else if (row.chaburaId) {
       const [chab] = await db()
-        .select({ name: chaburas.name })
+        .select({
+          name: chaburas.name,
+          image: chaburas.image,
+          slug: chaburas.slug,
+        })
         .from(chaburas)
         .where(eq(chaburas.id, row.chaburaId));
       chaburaName = chab?.name ?? null;
+      chaburaImage = chab?.image ?? null;
+      chaburaSlug = chab?.slug ?? null;
     }
 
     const now = new Date();
@@ -124,6 +166,11 @@ export default async function SessionDetailPage({
   if (!sessionData) notFound();
 
   const isOwner = sessionData.createdById === session.user.id;
+  const scheduleLabel = describeSchedule(
+    sessionData.rrule,
+    sessionData.dtstart,
+    sessionData.timezone,
+  );
   const statusColors: Record<string, string> = {
     active: "bg-success/10 text-success",
     paused: "bg-warning/10 text-warning",
@@ -134,7 +181,9 @@ export default async function SessionDetailPage({
     <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" asChild className="h-8 w-8 -ml-2">
-          <Link href="/dashboard"><ChevronLeft className="h-4 w-4" /></Link>
+          <Link href="/dashboard">
+            <ChevronLeft className="h-4 w-4" />
+          </Link>
         </Button>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-semibold text-foreground truncate">
@@ -144,81 +193,164 @@ export default async function SessionDetailPage({
             {sessionData.subjectName && (
               <Badge variant="secondary">{sessionData.subjectName}</Badge>
             )}
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[sessionData.status] ?? ""}`}>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[sessionData.status] ?? ""}`}
+            >
               {sessionData.status}
             </span>
-            {partnerName && (
-              <span className="text-xs text-muted-foreground">with {partnerName}</span>
-            )}
-            {chaburaName && (
-              <span className="text-xs text-muted-foreground">{chaburaName}</span>
-            )}
           </div>
         </div>
       </div>
+
+      {/* Chavruta / Chabura identity */}
+      {(partnerName || chaburaName) && (
+        <div className="flex items-center gap-3">
+          {partnerName ? (
+            <Link
+              href={`/profile/${partnerId}`}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+              <Avatar className="size-12">
+                {partnerImage && (
+                  <AvatarImage src={partnerImage} alt={partnerName} />
+                )}
+                <AvatarFallback className="text-base">
+                  {partnerName.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-semibold text-foreground">
+                {partnerName}
+              </span>
+            </Link>
+          ) : (
+            <Link
+              href={`/chaburas/${chaburaSlug}`}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+              <Avatar className="size-12">
+                {chaburaImage && (
+                  <AvatarImage src={chaburaImage} alt={chaburaName!} />
+                )}
+                <AvatarFallback className="text-base">
+                  {chaburaName!.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="font-semibold text-foreground">
+                {chaburaName}
+              </span>
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Schedule info */}
       <Card>
         <CardContent className="p-4 space-y-3">
           <h2 className="font-semibold text-foreground">Schedule</h2>
-          {sessionData.rrule && (
+          {scheduleLabel && (
             <div className="flex items-start gap-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4 mt-0.5 shrink-0" />
-              <span className="capitalize">{rruleToText(sessionData.rrule)}</span>
+              <span>{scheduleLabel}</span>
             </div>
           )}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="h-4 w-4 shrink-0" />
-            <span>{sessionData.durationMin} minutes · {sessionData.timezone ?? "UTC"}</span>
+            <span>
+              {sessionData.durationMin} minutes ·{" "}
+              {sessionData.timezone ?? "UTC"}
+            </span>
           </div>
         </CardContent>
       </Card>
+
+      {/* Owner actions */}
+      {isOwner && sessionData.status !== "cancelled" && (
+        <div className="grid grid-cols-3 gap-2">
+          <ChangeScheduleDialog
+            sessionId={id}
+            timezone={sessionData.timezone ?? "UTC"}
+            durationMin={sessionData.durationMin ?? 60}
+          />
+          {sessionData.status === "active" ? (
+            <form
+              action={async () => {
+                "use server";
+                await pauseSession(id);
+              }}
+              className="contents"
+            >
+              <Button
+                variant="outline"
+                className="flex flex-col h-auto py-3 gap-1 w-full"
+                type="submit"
+              >
+                <Pause className="h-4 w-4" />
+                <span className="text-xs">Pause</span>
+              </Button>
+            </form>
+          ) : (
+            <form
+              action={async () => {
+                "use server";
+                await resumeSession(id);
+              }}
+              className="contents"
+            >
+              <Button
+                variant="outline"
+                className="flex flex-col h-auto py-3 gap-1 w-full text-success"
+                type="submit"
+              >
+                <Play className="h-4 w-4" />
+                <span className="text-xs">Resume</span>
+              </Button>
+            </form>
+          )}
+          <form
+            action={async () => {
+              "use server";
+              await cancelSession(id);
+            }}
+            className="contents"
+          >
+            <Button
+              variant="outline"
+              className="flex flex-col h-auto py-3 gap-1 w-full text-destructive"
+              type="submit"
+            >
+              <X className="h-4 w-4" />
+              <span className="text-xs">Cancel</span>
+            </Button>
+          </form>
+        </div>
+      )}
 
       {/* Upcoming occurrences */}
       <div className="space-y-3">
         <h2 className="font-semibold text-foreground">Upcoming Sessions</h2>
         {occurrences.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No upcoming sessions scheduled.</p>
+          <p className="text-sm text-muted-foreground">
+            No upcoming sessions scheduled.
+          </p>
         ) : (
-          occurrences.map((occ) => (
-            <OccurrenceCard
-              key={occ.id}
-              id={occ.id}
-              sessionId={occ.sessionId}
-              startsAt={occ.startsAt.toISOString()}
-              endsAt={occ.endsAt.toISOString()}
-              status={occ.status as "scheduled" | "cancelled" | "completed" | "missed"}
-              meetUrl={occ.meetUrl ?? sessionData!.meetUrl ?? ""}
-              title={sessionData!.title ?? "Session"}
-            />
-          ))
+          <OccurrencesTable
+            isOwner={isOwner}
+            occurrences={occurrences.map((occ) => ({
+              id: occ.id,
+              sessionId: occ.sessionId,
+              startsAt: occ.startsAt.toISOString(),
+              endsAt: occ.endsAt.toISOString(),
+              status: occ.status as
+                | "scheduled"
+                | "cancelled"
+                | "completed"
+                | "missed",
+              meetUrl: occ.meetUrl ?? sessionData!.meetUrl ?? "",
+              title: sessionData!.title ?? "Session",
+            }))}
+          />
         )}
       </div>
-
-      {/* Owner actions */}
-      {isOwner && sessionData.status !== "cancelled" && (
-        <div className="flex flex-col gap-2">
-          {sessionData.status === "active" && (
-            <form action={async () => { "use server"; await pauseSession(id); }}>
-              <Button variant="outline" className="w-full gap-2" type="submit">
-                <Pause className="h-4 w-4" /> Pause Session
-              </Button>
-            </form>
-          )}
-          {sessionData.status === "paused" && (
-            <form action={async () => { "use server"; await resumeSession(id); }}>
-              <Button variant="outline" className="w-full gap-2 text-success" type="submit">
-                <Play className="h-4 w-4" /> Resume Session
-              </Button>
-            </form>
-          )}
-          <form action={async () => { "use server"; await cancelSession(id); }}>
-            <Button variant="outline" className="w-full gap-2 text-destructive" type="submit">
-              <X className="h-4 w-4" /> Cancel Series
-            </Button>
-          </form>
-        </div>
-      )}
     </div>
   );
 }

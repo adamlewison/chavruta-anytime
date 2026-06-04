@@ -15,3 +15,9 @@ export const LANGUAGE_NAMES: Record<string, string> = {
 export function languageName(code: string): string {
   return LANGUAGE_NAMES[code] ?? code;
 }
+
+export function countryFlag(code: string): string {
+  return code
+    .toUpperCase()
+    .replace(/./g, (c) => String.fromCodePoint(c.codePointAt(0)! + 127397));
+}

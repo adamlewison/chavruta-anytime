@@ -42,6 +42,17 @@ export async function sendMessage(
       })
       .returning();
 
+    // Mark conversation as read for the sender so their own message doesn't show as unread
+    await db()
+      .update(conversationMembers)
+      .set({ lastReadAt: message.createdAt })
+      .where(
+        and(
+          eq(conversationMembers.conversationId, conversationId),
+          eq(conversationMembers.userId, userId),
+        ),
+      );
+
     // Get sender name for the notification payload
     const [sender] = await db()
       .select({ name: users.name })

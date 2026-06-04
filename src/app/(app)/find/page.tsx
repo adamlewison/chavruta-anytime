@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 import { auth } from "@/lib/auth";
-import { getMatches } from "@/server/actions/match";
+import { getStudyMatchesForCurrentUser } from "@/server/actions/matches";
 import { EmptyState } from "@/components/brand/empty-state";
-import { MatchCard } from "@/components/matching/match-card";
-import { FindFilterSheet } from "@/components/matching/find-filter-sheet";
+import { StudyMatchCard } from "@/components/matching/study-match-card";
 
 export const metadata: Metadata = {
   title: "Find a Chavruta — ChavrutaAnytime",
@@ -24,35 +22,25 @@ export default async function FindPage() {
     redirect("/onboarding");
   }
 
-  const matches = await getMatches(20);
+  const matches = await getStudyMatchesForCurrentUser();
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">
-          Find a Chavruta
-        </h1>
-        <Suspense>
-          <FindFilterSheet />
-        </Suspense>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Find a Chavruta</h1>
+          {matches.length > 0 && (
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {matches.length} compatible learner{matches.length !== 1 ? "s" : ""} found
+            </p>
+          )}
+        </div>
       </div>
 
       {matches.length > 0 ? (
         <div className="space-y-4">
           {matches.map((match) => (
-            <MatchCard
-              key={match.user.id}
-              userId={match.user.id}
-              name={match.user.name}
-              image={match.user.image}
-              score={match.score}
-              sharedSubjects={match.highlights.sharedSubjects}
-              sharedLanguages={match.highlights.sharedLanguages}
-              exactHours={match.highlights.exactHoursPerWeek}
-              nearHours={match.highlights.nearHoursPerWeek}
-              teachingComplement={match.highlights.teachingComplement}
-              bio={match.user.bio}
-            />
+            <StudyMatchCard key={match.id} match={match} />
           ))}
         </div>
       ) : (

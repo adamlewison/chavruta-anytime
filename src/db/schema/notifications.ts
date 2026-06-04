@@ -1,12 +1,14 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   jsonb,
   pgTable,
+  primaryKey,
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import { notificationTypeEnum } from "./enums";
+import { notificationChannelEnum, notificationTypeEnum } from "./enums";
 import { users } from "./users";
 
 /* ------------------------------------------------------------------ */
@@ -33,8 +35,39 @@ export const notifications = pgTable(
 );
 
 /* ------------------------------------------------------------------ */
+/*  user_notification_settings                                        */
+/* ------------------------------------------------------------------ */
+// Missing row = enabled (sparse / "default allowed" strategy)
+export const userNotificationSettings = pgTable(
+  "user_notification_settings",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: notificationTypeEnum("type").notNull(),
+    channel: notificationChannelEnum("channel").notNull(),
+    isEnabled: boolean("is_enabled").notNull().default(true),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .$defaultFn(() => new Date()),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.type, t.channel] }),
+  ],
+);
+
+/* ------------------------------------------------------------------ */
 /*  Relations                                                         */
 /* ------------------------------------------------------------------ */
+export const userNotificationSettingsRelations = relations(
+  userNotificationSettings,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [userNotificationSettings.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, {
     fields: [notifications.userId],

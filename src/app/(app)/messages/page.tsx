@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { conversations, conversationMembers, messages, users } from "@/db/schema";
+import { conversations, conversationMembers, messages, users, chaburas } from "@/db/schema";
 import { eq, and, desc, ne } from "drizzle-orm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/brand/empty-state";
@@ -22,9 +22,9 @@ export default async function MessagesPage() {
 
   type ConvRow = {
     conversationId: string;
-    otherName: string | null;
-    otherImage: string | null;
-    otherId: string;
+    displayName: string | null;
+    displayImage: string | null;
+    type: "dm" | "chabura";
     lastBody: string | null;
     lastAt: Date | null;
     lastReadAt: Date | null;
@@ -33,29 +33,50 @@ export default async function MessagesPage() {
   let convs: ConvRow[] = [];
 
   try {
-    // Get all conversations this user is in, with the other member and latest message
     const myMemberships = await db()
-      .select({ conversationId: conversationMembers.conversationId, lastReadAt: conversationMembers.lastReadAt })
+      .select({
+        conversationId: conversationMembers.conversationId,
+        lastReadAt: conversationMembers.lastReadAt,
+        convType: conversations.type,
+        chaburaId: conversations.chaburaId,
+      })
       .from(conversationMembers)
+      .innerJoin(conversations, eq(conversations.id, conversationMembers.conversationId))
       .where(eq(conversationMembers.userId, userId));
 
     for (const membership of myMemberships) {
       const cid = membership.conversationId;
 
-      // Find the other member
-      const [other] = await db()
-        .select({ userId: conversationMembers.userId })
-        .from(conversationMembers)
-        .where(and(eq(conversationMembers.conversationId, cid), ne(conversationMembers.userId, userId)));
+      let displayName: string | null = null;
+      let displayImage: string | null = null;
 
-      if (!other) continue;
+      if (membership.convType === "dm") {
+        const [other] = await db()
+          .select({ userId: conversationMembers.userId })
+          .from(conversationMembers)
+          .where(and(eq(conversationMembers.conversationId, cid), ne(conversationMembers.userId, userId)));
 
-      const [otherUser] = await db()
-        .select({ id: users.id, name: users.name, image: users.image })
-        .from(users)
-        .where(eq(users.id, other.userId));
+        if (!other) continue;
 
-      // Latest message
+        const [otherUser] = await db()
+          .select({ name: users.name, image: users.image })
+          .from(users)
+          .where(eq(users.id, other.userId));
+
+        displayName = otherUser?.name ?? null;
+        displayImage = otherUser?.image ?? null;
+      } else {
+        // chabura conversation — look up the chabura name
+        if (!membership.chaburaId) continue;
+        const [chabura] = await db()
+          .select({ name: chaburas.name, image: chaburas.image })
+          .from(chaburas)
+          .where(eq(chaburas.id, membership.chaburaId));
+
+        displayName = chabura?.name ?? null;
+        displayImage = chabura?.image ?? null;
+      }
+
       const [latest] = await db()
         .select({ body: messages.body, createdAt: messages.createdAt })
         .from(messages)
@@ -65,16 +86,15 @@ export default async function MessagesPage() {
 
       convs.push({
         conversationId: cid,
-        otherName: otherUser?.name ?? null,
-        otherImage: otherUser?.image ?? null,
-        otherId: other.userId,
+        displayName,
+        displayImage,
+        type: membership.convType,
         lastBody: latest?.body ?? null,
         lastAt: latest?.createdAt ?? null,
         lastReadAt: membership.lastReadAt ?? null,
       });
     }
 
-    // Sort by latest message
     convs.sort((a, b) => {
       if (!a.lastAt) return 1;
       if (!b.lastAt) return -1;
@@ -115,13 +135,13 @@ export default async function MessagesPage() {
                 className="flex items-center gap-4 px-4 py-4 hover:bg-muted/40 transition-colors"
               >
                 <Avatar className="h-11 w-11 shrink-0">
-                  <AvatarImage src={c.otherImage ?? undefined} />
-                  <AvatarFallback>{initials(c.otherName)}</AvatarFallback>
+                  {c.displayImage && <AvatarImage src={c.displayImage} />}
+                  <AvatarFallback>{initials(c.displayName)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <p className={cn("font-medium truncate text-sm", hasUnread && "text-foreground font-semibold")}>
-                      {c.otherName ?? "Partner"}
+                      {c.displayName ?? (c.type === "chabura" ? "Chabura" : "Partner")}
                     </p>
                     {c.lastAt && (
                       <span className="text-[11px] text-muted-foreground shrink-0">

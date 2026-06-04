@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createChabura } from "@/server/actions/chaburas";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 
 interface SubjectOption {
   id: string;
@@ -27,6 +28,16 @@ interface NewChaburaFormProps {
   subjects: SubjectOption[];
 }
 
+function toSlug(name: string) {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+type SlugStatus = "idle" | "checking" | "available" | "taken";
+
 export function NewChaburaForm({ subjects }: NewChaburaFormProps) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -34,19 +45,46 @@ export function NewChaburaForm({ subjects }: NewChaburaFormProps) {
   const [subjectId, setSubjectId] = useState<string>("");
   const [isPublic, setIsPublic] = useState(true);
   const [isPending, startTransition] = useTransition();
+  const [slugStatus, setSlugStatus] = useState<SlugStatus>("idle");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const canSubmit = name.trim().length >= 3;
+  const slug = toSlug(name);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (!slug || slug.length < 3) {
+      setSlugStatus("idle");
+      return;
+    }
+
+    setSlugStatus("checking");
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/chaburas/check-slug?slug=${encodeURIComponent(slug)}`);
+        const data = await res.json();
+        setSlugStatus(data.available ? "available" : "taken");
+      } catch {
+        setSlugStatus("idle");
+      }
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [slug]);
+
+  const canSubmit =
+    name.trim().length >= 3 && slugStatus === "available" && !isPending;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) {
-      toast.error("Please enter a name (at least 3 characters)");
-      return;
-    }
+    if (!canSubmit) return;
     startTransition(async () => {
       const result = await createChabura({
         name: name.trim(),
         description: description.trim(),
+        slug,
         subjectId: subjectId || undefined,
         isPublic,
       });
@@ -74,6 +112,25 @@ export function NewChaburaForm({ subjects }: NewChaburaFormProps) {
               minLength={3}
               maxLength={80}
             />
+
+            {slug.length >= 3 && (
+              <div className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2 text-sm">
+                <span className="text-muted-foreground shrink-0">chaburas/</span>
+                <span className="font-mono flex-1">{slug}</span>
+                {slugStatus === "checking" && (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
+                )}
+                {slugStatus === "available" && (
+                  <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                )}
+                {slugStatus === "taken" && (
+                  <XCircle className="h-4 w-4 text-destructive shrink-0" />
+                )}
+              </div>
+            )}
+            {slugStatus === "taken" && (
+              <p className="text-sm text-destructive">That name is already taken.</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -122,7 +179,7 @@ export function NewChaburaForm({ subjects }: NewChaburaFormProps) {
             type="submit"
             className="w-full bg-accent text-white hover:bg-accent/90"
             size="lg"
-            disabled={!canSubmit || isPending}
+            disabled={!canSubmit}
           >
             {isPending ? "Creating…" : "Create"}
           </Button>

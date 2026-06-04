@@ -12,62 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TIMEZONES } from "@/lib/location-data";
 import type { OnboardingData } from "../onboarding-wizard";
 
 interface StepTimezoneProps {
   data: OnboardingData;
   onChange: (updates: Partial<OnboardingData>) => void;
 }
-
-const TIMEZONES = [
-  {
-    region: "Americas",
-    zones: [
-      { value: "America/New_York", label: "Eastern Time (New York)" },
-      { value: "America/Chicago", label: "Central Time (Chicago)" },
-      { value: "America/Denver", label: "Mountain Time (Denver)" },
-      { value: "America/Los_Angeles", label: "Pacific Time (Los Angeles)" },
-      { value: "America/Toronto", label: "Toronto" },
-      { value: "America/Anchorage", label: "Alaska" },
-      { value: "America/Sao_Paulo", label: "Sao Paulo" },
-      { value: "America/Argentina/Buenos_Aires", label: "Buenos Aires" },
-      { value: "America/Mexico_City", label: "Mexico City" },
-    ],
-  },
-  {
-    region: "Europe",
-    zones: [
-      { value: "Europe/London", label: "London (GMT/BST)" },
-      { value: "Europe/Paris", label: "Paris (CET)" },
-      { value: "Europe/Berlin", label: "Berlin (CET)" },
-      { value: "Europe/Amsterdam", label: "Amsterdam (CET)" },
-      { value: "Europe/Moscow", label: "Moscow" },
-      { value: "Europe/Kiev", label: "Kyiv" },
-    ],
-  },
-  {
-    region: "Middle East",
-    zones: [
-      { value: "Asia/Jerusalem", label: "Jerusalem (IST)" },
-    ],
-  },
-  {
-    region: "Asia & Pacific",
-    zones: [
-      { value: "Australia/Sydney", label: "Sydney (AEST)" },
-      { value: "Australia/Melbourne", label: "Melbourne (AEST)" },
-      { value: "Pacific/Auckland", label: "Auckland (NZST)" },
-      { value: "Asia/Tokyo", label: "Tokyo (JST)" },
-      { value: "Asia/Hong_Kong", label: "Hong Kong (HKT)" },
-    ],
-  },
-  {
-    region: "Africa",
-    zones: [
-      { value: "Africa/Johannesburg", label: "Johannesburg (SAST)" },
-    ],
-  },
-];
 
 function formatTimeInZone(timezone: string): string {
   try {

@@ -12,67 +12,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { COUNTRIES } from "@/lib/location-data";
 import type { OnboardingData } from "../onboarding-wizard";
 
 interface StepBasicsProps {
   data: OnboardingData;
   onChange: (updates: Partial<OnboardingData>) => void;
 }
-
-const COUNTRIES = [
-  {
-    region: "North America",
-    countries: [
-      { code: "US", name: "United States" },
-      { code: "CA", name: "Canada" },
-      { code: "MX", name: "Mexico" },
-    ],
-  },
-  {
-    region: "Europe",
-    countries: [
-      { code: "GB", name: "United Kingdom" },
-      { code: "FR", name: "France" },
-      { code: "DE", name: "Germany" },
-      { code: "NL", name: "Netherlands" },
-      { code: "BE", name: "Belgium" },
-      { code: "CH", name: "Switzerland" },
-      { code: "AT", name: "Austria" },
-      { code: "IT", name: "Italy" },
-      { code: "ES", name: "Spain" },
-      { code: "SE", name: "Sweden" },
-      { code: "UA", name: "Ukraine" },
-      { code: "RU", name: "Russia" },
-      { code: "HU", name: "Hungary" },
-    ],
-  },
-  {
-    region: "Middle East",
-    countries: [
-      { code: "IL", name: "Israel" },
-    ],
-  },
-  {
-    region: "Oceania",
-    countries: [
-      { code: "AU", name: "Australia" },
-      { code: "NZ", name: "New Zealand" },
-    ],
-  },
-  {
-    region: "South America",
-    countries: [
-      { code: "BR", name: "Brazil" },
-      { code: "AR", name: "Argentina" },
-    ],
-  },
-  {
-    region: "Africa",
-    countries: [
-      { code: "ZA", name: "South Africa" },
-    ],
-  },
-];
 
 export function StepBasics({ data, onChange }: StepBasicsProps) {
   return (

@@ -11,11 +11,11 @@ import {
   users,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { nanoid } from "nanoid";
 
 export async function createChabura(data: {
   name: string;
   description: string;
+  slug: string;
   subjectId?: string;
   isPublic: boolean;
   image?: string;
@@ -28,14 +28,16 @@ export async function createChabura(data: {
 
     const userId = session.user.id;
 
-    // Generate slug from name
-    const slug =
-      data.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "") +
-      "-" +
-      nanoid(6);
+    const slug = data.slug.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "");
+    if (!slug) return { success: false, error: "Invalid slug" };
+
+    // Check slug uniqueness
+    const [existing] = await db()
+      .select({ id: chaburas.id })
+      .from(chaburas)
+      .where(eq(chaburas.slug, slug))
+      .limit(1);
+    if (existing) return { success: false, error: "That name is already taken" };
 
     // Insert chabura
     const [chabura] = await db()
@@ -214,7 +216,7 @@ export async function declineMember(
 
 export async function updateChabura(
   chaburaId: string,
-  data: { name: string; description: string },
+  data: { name: string; description: string; isPublic?: boolean },
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const session = await auth();
@@ -239,13 +241,53 @@ export async function updateChabura(
 
     await db()
       .update(chaburas)
-      .set({ name: data.name, description: data.description, updatedAt: new Date() })
+      .set({
+        name: data.name,
+        description: data.description,
+        ...(data.isPublic !== undefined && { isPublic: data.isPublic }),
+        updatedAt: new Date(),
+      })
       .where(eq(chaburas.id, chaburaId));
 
     return { success: true };
   } catch (error) {
     console.error("updateChabura error:", error);
     return { success: false, error: "Failed to update chabura" };
+  }
+}
+
+export async function leaveChabura(
+  chaburaId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const userId = session.user.id;
+
+    const [membership] = await db()
+      .select()
+      .from(chaburaMembers)
+      .where(and(eq(chaburaMembers.chaburaId, chaburaId), eq(chaburaMembers.userId, userId)));
+
+    if (!membership) {
+      return { success: false, error: "Not a member" };
+    }
+
+    if (membership.role === "rosh") {
+      return { success: false, error: "Rosh cannot leave — transfer leadership first" };
+    }
+
+    await db()
+      .delete(chaburaMembers)
+      .where(and(eq(chaburaMembers.chaburaId, chaburaId), eq(chaburaMembers.userId, userId)));
+
+    return { success: true };
+  } catch (error) {
+    console.error("leaveChabura error:", error);
+    return { success: false, error: "Failed to leave chabura" };
   }
 }
 

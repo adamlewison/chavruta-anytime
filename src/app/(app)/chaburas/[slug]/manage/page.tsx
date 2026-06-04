@@ -28,6 +28,8 @@ export default async function ManageChaburaPage({
     slug: string;
     name: string;
     description: string | null;
+    image: string | null;
+    isPublic: boolean | null;
   } | null = null;
 
   try {
@@ -37,6 +39,8 @@ export default async function ManageChaburaPage({
         slug: chaburas.slug,
         name: chaburas.name,
         description: chaburas.description,
+        image: chaburas.image,
+        isPublic: chaburas.isPublic,
       })
       .from(chaburas)
       .where(eq(chaburas.slug, slug));
@@ -84,6 +88,8 @@ export default async function ManageChaburaPage({
         slug={chabura.slug}
         initialName={chabura.name}
         initialDescription={chabura.description ?? ""}
+        initialImage={chabura.image}
+        initialIsPublic={chabura.isPublic ?? true}
       />
     </div>
   );

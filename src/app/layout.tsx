@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "@/styles/globals.css";
+import "flag-icons/css/flag-icons.min.css";
 import { Toaster } from "sonner";
 import { Providers } from "@/lib/providers";
 
@@ -16,10 +17,49 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chavrutaanytime.com";
+
 export const metadata: Metadata = {
-  title: "ChavrutaAnytime — Find Your Learning Partner",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "ChavrutaAnytime — Find Your Learning Partner",
+    template: "%s | ChavrutaAnytime",
+  },
   description:
     "Connect with Torah learning partners anytime, anywhere. Find chavrutas and chaburas for Gemara, Chumash, Halacha, and more.",
+  keywords: [
+    "chavruta",
+    "Torah learning",
+    "Jewish learning",
+    "chabura",
+    "Gemara",
+    "Talmud",
+    "Halacha",
+    "Chumash",
+    "learning partner",
+  ],
+  openGraph: {
+    type: "website",
+    siteName: "ChavrutaAnytime",
+    title: "ChavrutaAnytime — Find Your Learning Partner",
+    description:
+      "Connect with Torah learning partners anytime, anywhere. Find chavrutas and chaburas for Gemara, Chumash, Halacha, and more.",
+    url: siteUrl,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ChavrutaAnytime — Find Your Learning Partner",
+    description:
+      "Connect with Torah learning partners anytime, anywhere. Find chavrutas and chaburas for Gemara, Chumash, Halacha, and more.",
+  },
+  manifest: "/favicon/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/favicon/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({

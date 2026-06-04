@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 
 export interface PollState {
@@ -24,11 +25,16 @@ const MAX_CONSECUTIVE_ERRORS = 2;
 
 export function usePoll() {
   const queryClient = useQueryClient();
+  const pathname = usePathname();
   const etagRef = useRef<string>("");
   const errCountRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevNotifIdRef = useRef<string | null | undefined>(undefined);
+  const prevMsgIdsRef = useRef<Record<string, string>>({});
   const isFirstPollRef = useRef(true);
+  // Keep a ref to pathname so the callback always sees the latest value
+  const pathnameRef = useRef(pathname);
+  useEffect(() => { pathnameRef.current = pathname; }, [pathname]);
 
   const poll = useCallback(async () => {
     try {
@@ -56,18 +62,38 @@ export function usePoll() {
       // Update poll cache so badge components re-render
       queryClient.setQueryData(["poll"], data);
 
-      // Toast on new notification (skip on first poll to avoid noise on load)
-      const newNotifId = data.cursors.latestNotificationId;
-      if (!isFirstPollRef.current && newNotifId && newNotifId !== prevNotifIdRef.current) {
-        toast("You have a new notification", {
-          action: {
-            label: "View",
-            onClick: () => { window.location.href = "/notifications"; },
-          },
-        });
+      if (!isFirstPollRef.current) {
+        // Toast on new notification
+        const newNotifId = data.cursors.latestNotificationId;
+        if (newNotifId && newNotifId !== prevNotifIdRef.current) {
+          toast("You have a new notification", {
+            action: {
+              label: "View",
+              onClick: () => { window.location.href = "/notifications"; },
+            },
+          });
+        }
+
+        // Toast on new message — but only if we're not already in that conversation
+        for (const [convId, latestId] of Object.entries(data.cursors.latestMessageIdByConv)) {
+          const prev = prevMsgIdsRef.current[convId];
+          const isViewingConv = pathnameRef.current === `/messages/${convId}`;
+          if (latestId !== prev && !isViewingConv) {
+            toast("New message received", {
+              action: {
+                label: "View",
+                onClick: () => { window.location.href = `/messages/${convId}`; },
+              },
+            });
+            // Only show one toast even if multiple conversations updated
+            break;
+          }
+        }
       }
+
       isFirstPollRef.current = false;
-      prevNotifIdRef.current = newNotifId;
+      prevNotifIdRef.current = data.cursors.latestNotificationId;
+      prevMsgIdsRef.current = data.cursors.latestMessageIdByConv;
 
       // Selectively invalidate changed queries
       if (data.unread.notifications > 0) {

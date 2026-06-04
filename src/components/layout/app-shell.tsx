@@ -1,6 +1,7 @@
 import { AppHeader } from "@/components/layout/app-header";
 import { BottomTabs } from "@/components/layout/bottom-tabs";
 import { DesktopTopNav } from "@/components/layout/desktop-top-nav";
+import { PollProvider } from "@/components/layout/poll-provider";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -9,6 +10,7 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex flex-col min-h-screen">
+      <PollProvider />
       {/* Desktop top nav */}
       <DesktopTopNav />
 

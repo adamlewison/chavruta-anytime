@@ -43,6 +43,7 @@ export const users = pgTable("users", {
     withTimezone: true,
     mode: "date",
   }),
+  profileVisible: boolean("profile_visible").default(true).notNull(),
   darkMode: boolean("dark_mode").default(false),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
     .$defaultFn(() => new Date()),

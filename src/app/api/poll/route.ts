@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { notifications } from "@/db/schema/notifications";
 import { messages, conversationMembers } from "@/db/schema/messages";
-import { eq, sql, and, gt, isNull } from "drizzle-orm";
+import { eq, ne, sql, and, gt, isNull } from "drizzle-orm";
 import type { PollState } from "@/lib/poll";
 
 export async function GET(request: NextRequest) {
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   // Query latest notification id and unread count
   const [notifResult] = await database
     .select({
-      latestId: sql<string | null>`max(${notifications.id})`,
+      latestId: sql<string | null>`max(${notifications.createdAt})`,
       unreadCount: sql<number>`count(*) filter (where ${notifications.readAt} is null)`,
     })
     .from(notifications)
@@ -39,7 +39,10 @@ export async function GET(request: NextRequest) {
   let totalMessages = 0;
 
   for (const row of memberRows) {
-    const conditions = [eq(messages.conversationId, row.conversationId)];
+    const conditions = [
+      eq(messages.conversationId, row.conversationId),
+      ne(messages.senderId, userId),
+    ];
     if (row.lastReadAt) {
       conditions.push(gt(messages.createdAt, row.lastReadAt));
     }
@@ -47,7 +50,7 @@ export async function GET(request: NextRequest) {
     const [msgResult] = await database
       .select({
         count: sql<number>`count(*)`,
-        latestId: sql<string | null>`max(${messages.id})`,
+        latestId: sql<string | null>`max(${messages.createdAt})`,
       })
       .from(messages)
       .where(and(...conditions));

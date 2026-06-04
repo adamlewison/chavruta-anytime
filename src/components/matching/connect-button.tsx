@@ -3,9 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { sendConnectionRequest } from "@/server/actions/connections";
+import { sendConnectionRequest, removeConnection } from "@/server/actions/connections";
 import { Button } from "@/components/ui/button";
-import { UserPlus, MessageSquare, Check } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { UserPlus, MessageSquare, Check, UserMinus, MoreVertical } from "lucide-react";
 
 type ConnectionState = "none" | "pending_sent" | "pending_received" | "accepted";
 
@@ -25,7 +31,26 @@ export function ConnectButton({
   conversationId,
 }: ConnectButtonProps) {
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
   const [state, setState] = useState<ConnectionState>(initialState);
+
+  const handleRemove = async () => {
+    if (!connectionId) return;
+    setIsRemoving(true);
+    try {
+      const result = await removeConnection(connectionId);
+      if (result.success) {
+        setState("none");
+        toast.success("Connection removed");
+      } else {
+        toast.error(result.error || "Couldn't remove connection — try again?");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setIsRemoving(false);
+    }
+  };
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -47,18 +72,30 @@ export function ConnectButton({
   let actionBar;
   if (state === "accepted") {
     actionBar = (
-      <div className="flex gap-3">
-        <Button asChild className="flex-1 gap-2" size="lg" variant="outline">
+      <div className="flex gap-2">
+        <Button asChild className="gap-2" size="lg" variant="outline">
           <Link href={conversationId ? `/messages/${conversationId}` : "/messages"}>
             <MessageSquare className="h-4 w-4" />
             Message
           </Link>
         </Button>
-        <Button asChild className="flex-1 gap-2 bg-accent text-white hover:bg-accent/90" size="lg">
-          <Link href={`/sessions/new?type=chavruta&with=${connectionId}`}>
-            Schedule Session
-          </Link>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="lg" variant="outline" className="px-3">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={handleRemove}
+              disabled={isRemoving}
+              className="text-destructive focus:text-destructive gap-2"
+            >
+              <UserMinus className="h-4 w-4" />
+              {isRemoving ? "Removing…" : "Remove Connection"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     );
   } else if (state === "pending_sent") {
@@ -88,9 +125,5 @@ export function ConnectButton({
     );
   }
 
-  return (
-    <div className="fixed bottom-16 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 px-4 py-3 md:bottom-0">
-      <div className="mx-auto max-w-2xl">{actionBar}</div>
-    </div>
-  );
+  return <div>{actionBar}</div>;
 }

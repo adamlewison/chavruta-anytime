@@ -98,10 +98,11 @@ export const { auth, signIn, signOut, handlers } = NextAuth(() => {
         // Always refresh onboardedAt so session reflects current DB state
         if (token.sub) {
           const [dbUser] = await database
-            .select({ onboardedAt: users.onboardedAt })
+            .select({ onboardedAt: users.onboardedAt, image: users.image })
             .from(users)
             .where(eq(users.id, token.sub as string));
           token.onboardedAt = dbUser?.onboardedAt?.toISOString() ?? null;
+          token.picture = dbUser?.image ?? token.picture;
         }
         return token;
       },

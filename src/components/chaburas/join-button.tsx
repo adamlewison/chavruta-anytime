@@ -41,7 +41,7 @@ export function JoinButton({
 
   if (state === "rosh" || state === "member") {
     return (
-      <Button className="w-full gap-2" size="lg" variant="outline" disabled>
+      <Button className="gap-2" variant="outline" disabled>
         <Check className="h-4 w-4" />
         {state === "rosh" ? "You are the Rosh" : "You're a member"}
       </Button>
@@ -50,7 +50,7 @@ export function JoinButton({
 
   if (state === "pending") {
     return (
-      <Button className="w-full gap-2" size="lg" variant="outline" disabled>
+      <Button className="gap-2" variant="outline" disabled>
         <Clock className="h-4 w-4" />
         Request pending approval
       </Button>
@@ -59,8 +59,7 @@ export function JoinButton({
 
   return (
     <Button
-      className="w-full gap-2 bg-accent text-white hover:bg-accent/90"
-      size="lg"
+      className="gap-2 bg-accent text-white hover:bg-accent/90"
       onClick={handleJoin}
       disabled={isPending}
     >

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { messages, conversationMembers } from "@/db/schema";
+import { messages, conversationMembers, users } from "@/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 
 export async function GET(
@@ -35,10 +35,12 @@ export async function GET(
     .select({
       id: messages.id,
       senderId: messages.senderId,
+      senderName: users.name,
       body: messages.body,
       createdAt: messages.createdAt,
     })
     .from(messages)
+    .leftJoin(users, eq(messages.senderId, users.id))
     .where(eq(messages.conversationId, conversationId))
     .orderBy(asc(messages.createdAt));
 
