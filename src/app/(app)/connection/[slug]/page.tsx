@@ -88,6 +88,7 @@ export default async function ChaburaDetailPage({
   let chatMessages: Array<{
     id: string;
     senderId: string;
+    senderName: string | null;
     body: string;
     createdAt: string;
   }> = [];
@@ -169,10 +170,12 @@ export default async function ChaburaDetailPage({
           .select({
             id: messages.id,
             senderId: messages.senderId,
+            senderName: users.name,
             body: messages.body,
             createdAt: messages.createdAt,
           })
           .from(messages)
+          .leftJoin(users, eq(messages.senderId, users.id))
           .where(eq(messages.conversationId, conv.id))
           .orderBy(asc(messages.createdAt));
 

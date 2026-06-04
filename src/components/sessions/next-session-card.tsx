@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
-import { Headset } from "lucide-react";
+import { Headset, Video } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

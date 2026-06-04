@@ -1,7 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
 import { signIn } from "@/lib/auth";
 import { Logo } from "@/components/brand/logo";
+import { LogoName } from "@/components/brand/logo-name";
 import { SignInEmailForm } from "./email-form";
 
 export const metadata = {
@@ -13,15 +13,7 @@ export default function SignInPage() {
     <div className="flex flex-col items-center gap-8">
       {/* Logo */}
       <Logo size="lg" />
-      <Image
-        src="/ca-logo-name.png"
-        alt="ChavrutaAnytime"
-        width={320}
-        height={80}
-        priority
-        unoptimized
-        className="-mt-4"
-      />
+      <LogoName />
 
       {/* Card */}
       <div className="w-full rounded-xl border border-border bg-card p-8 shadow-sm">
