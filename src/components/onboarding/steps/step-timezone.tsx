@@ -36,15 +36,14 @@ function formatTimeInZone(timezone: string): string {
 }
 
 export function StepTimezone({ data, onChange }: StepTimezoneProps) {
-  const [currentTime, setCurrentTime] = useState("");
+  const [, forceTick] = useState(0);
 
   useEffect(() => {
-    setCurrentTime(formatTimeInZone(data.timezone));
-    const interval = setInterval(() => {
-      setCurrentTime(formatTimeInZone(data.timezone));
-    }, 1000);
+    const interval = setInterval(() => forceTick((t) => t + 1), 1000);
     return () => clearInterval(interval);
-  }, [data.timezone]);
+  }, []);
+
+  const currentTime = formatTimeInZone(data.timezone);
 
   const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const isAutoDetected = data.timezone === detectedTz;

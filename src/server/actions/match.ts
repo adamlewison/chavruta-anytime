@@ -79,7 +79,7 @@ export async function getMatches(limit?: number): Promise<MatchResult[]> {
     // Get subjects for all candidates
     const candidateIds = candidates.map((c) => c.id);
 
-    let candidateSubjectsMap = new Map<string, UserForMatching["subjects"]>();
+    const candidateSubjectsMap = new Map<string, UserForMatching["subjects"]>();
 
     if (candidateIds.length > 0) {
       const allCandidateSubjects = await db()

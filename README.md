@@ -46,7 +46,7 @@ ChavrutaAnytime matches learners with **chavruta** partners (1-on-1 Torah study)
 ### 1. Install dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 2. Set up environment variables
@@ -75,14 +75,14 @@ cp .env.example .env.local
 ### 3. Set up the database
 
 ```bash
-npm run db:push      # Push schema to database
-npm run db:seed      # Seed subjects and initial data (optional)
+pnpm db:push      # Push schema to database
+pnpm db:seed      # Seed subjects and initial data (optional)
 ```
 
 ### 4. Run the dev server
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -135,9 +135,9 @@ Schema is managed with Drizzle ORM. Key tables:
 - `notifications` — JSONB notification payloads
 
 ```bash
-npm run db:generate  # Generate migration from schema changes
-npm run db:migrate   # Apply migrations
-npm run db:studio    # Open Drizzle Studio
+pnpm db:generate  # Generate migration from schema changes
+pnpm db:push      # Apply schema to database
+pnpm db:studio    # Open Drizzle Studio
 ```
 
 ---
@@ -150,7 +150,21 @@ Managed via `vercel.json` and secured with `CRON_SECRET`:
 |---|---|---|
 | Every 5 min | `/api/cron/session-reminders` | Notify users 10 min before sessions |
 | Daily 3am UTC | `/api/cron/topup-occurrences` | Generate upcoming RRULE occurrences |
-| Sundays 6pm UTC | `/api/cron/match-digest` | Send weekly match suggestions |
+| Sundays 6pm UTC | `/api/cron/weekly-match-digest` | Send weekly match suggestions |
+
+---
+
+## Development
+
+Node version is pinned in `.nvmrc`. Package manager is **pnpm** (see `pnpm-lock.yaml`) — don't use `npm`/`yarn`.
+
+```bash
+pnpm lint        # ESLint
+pnpm typecheck   # next typegen + tsc --noEmit
+pnpm test        # Vitest
+```
+
+These three run in CI on every PR (`.github/workflows/ci.yml`) and in a local pre-commit hook (Husky). Design decisions live in [`chavruta-anytime-web-app-design-guidelines.md`](./chavruta-anytime-web-app-design-guidelines.md); `buildplan.md` is the original historical spec and defers to it on brand/visual questions.
 
 ---
 

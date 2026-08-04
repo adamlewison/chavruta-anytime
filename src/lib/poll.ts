@@ -117,7 +117,7 @@ export function usePoll() {
     }
   }, [queryClient]);
 
-  const scheduleNext = useCallback(() => {
+  const scheduleNext = useCallback(function tick() {
     const interval =
       errCountRef.current >= MAX_CONSECUTIVE_ERRORS
         ? BACKOFF_INTERVAL
@@ -125,11 +125,11 @@ export function usePoll() {
 
     timerRef.current = setTimeout(async () => {
       if (document.visibilityState === "hidden") {
-        scheduleNext();
+        tick();
         return;
       }
       await poll();
-      scheduleNext();
+      tick();
     }, interval);
   }, [poll]);
 

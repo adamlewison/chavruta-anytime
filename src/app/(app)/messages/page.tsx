@@ -30,7 +30,7 @@ export default async function MessagesPage() {
     lastReadAt: Date | null;
   };
 
-  let convs: ConvRow[] = [];
+  const convs: ConvRow[] = [];
 
   try {
     const myMemberships = await db()

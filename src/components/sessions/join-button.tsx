@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -35,19 +35,14 @@ function formatTimeUntil(startsAt: string): string {
 }
 
 export function JoinButton({ meetUrl, startsAt, endsAt, className }: JoinButtonProps) {
-  const [state, setState] = useState<MeetingState>(() =>
-    getMeetingState(startsAt, endsAt)
-  );
-
-  const update = useCallback(() => {
-    setState(getMeetingState(startsAt, endsAt));
-  }, [startsAt, endsAt]);
+  const [, forceTick] = useState(0);
 
   useEffect(() => {
-    update();
-    const interval = setInterval(update, 30_000);
+    const interval = setInterval(() => forceTick((t) => t + 1), 30_000);
     return () => clearInterval(interval);
-  }, [update]);
+  }, []);
+
+  const state = getMeetingState(startsAt, endsAt);
 
   if (state === "upcoming") {
     return (

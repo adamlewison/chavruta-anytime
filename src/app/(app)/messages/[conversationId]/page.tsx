@@ -19,6 +19,20 @@ export default async function ConversationPage({
   const { conversationId } = await params;
   const userId = session.user.id;
 
+  let chatThreadProps: {
+    conversationId: string;
+    currentUserId: string;
+    otherUser: { name: string | null; image: string | null; profileHref: string | null };
+    isChabura: boolean;
+    initialMessages: {
+      id: string;
+      senderId: string;
+      senderName: string | null;
+      body: string;
+      createdAt: string;
+    }[];
+  };
+
   try {
     // Verify membership and get conversation type
     const [row] = await db()
@@ -91,17 +105,17 @@ export default async function ConversationPage({
       createdAt: (m.createdAt ?? new Date()).toISOString(),
     }));
 
-    return (
-      <ChatThread
-        conversationId={conversationId}
-        currentUserId={userId}
-        otherUser={{ name: displayName, image: displayImage, profileHref }}
-        isChabura={row.convType === "chabura"}
-        initialMessages={serialised}
-      />
-    );
+    chatThreadProps = {
+      conversationId,
+      currentUserId: userId,
+      otherUser: { name: displayName, image: displayImage, profileHref },
+      isChabura: row.convType === "chabura",
+      initialMessages: serialised,
+    };
   } catch (err) {
     console.error("Conversation load error:", err);
     notFound();
   }
+
+  return <ChatThread {...chatThreadProps} />;
 }

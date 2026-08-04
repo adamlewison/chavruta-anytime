@@ -1,5 +1,7 @@
 # ChavrutaAnytime — Build Spec & Agent Prompt
 
+> **Historical document.** This was the original build spec used to scaffold the app. Most of it (schema, algorithms, page map, cron jobs) still reflects how the app works — but the brand/visual design in §3 below has since been superseded. For current design decisions, use [`chavruta-anytime-web-app-design-guidelines.md`](./chavruta-anytime-web-app-design-guidelines.md), which matches what's actually implemented in `src/styles/globals.css`.
+
 > You are building **ChavrutaAnytime**, a platform that helps Jewish learners find learning partners (chavrutas) and groups (chaburas) for Torah study, schedule recurring sessions, and meet over video — anytime.
 >
 > This document is the complete spec. Treat every section as a requirement, not a suggestion. When something is ambiguous, choose the option that produces the most polished, mobile-first, opinionated product.
@@ -49,87 +51,13 @@ Node 20. pnpm. TypeScript strict. ESLint + Prettier. Husky pre-commit.
 
 ## 3. Brand & Design System
 
-### 3.1 Logo & Wordmark
+See [`chavruta-anytime-web-app-design-guidelines.md`](./chavruta-anytime-web-app-design-guidelines.md) for the current colors, typography, and component conventions — that file is the source of truth and matches `src/styles/globals.css`.
 
-**`chavruta`** in deep blue, **`anytime`** in warm orange. One word, no space, mixed-case styling: **chavruta**anytime.
+A few product-level UX rules from the original spec still apply and aren't restated there:
 
-Use Fraunces (serif, semibold) for the wordmark — gives it a Torah-scholarly feel without being kitsch. Pair with Inter for UI text and Frank Ruhl Libre for any Hebrew.
-
-### 3.2 Color Palette
-
-Define in `tailwind.config.ts` and as CSS variables in `globals.css` for both light and dark.
-
-```
-Brand
-  ink         #0E2A47   (deep blue — "chavruta")
-  ember       #E8703A   (warm orange — "anytime")
-  parchment   #FBF6EC   (warm off-white background)
-  scroll      #F2E8D5   (slightly darker parchment, card surface)
-
-Neutrals (warm, not slate)
-  stone-50  #FAF7F2
-  stone-100 #F1ECE2
-  stone-200 #E0D8C8
-  stone-400 #9C9281
-  stone-600 #5A5346
-  stone-800 #2A2620
-  stone-900 #161310
-
-Semantic
-  success #2F7D5B   (olive-green)
-  warning #C68A2E   (amber)
-  danger  #B5371F   (sienna)
-
-Dark mode
-  bg      #161310
-  surface #211C16
-  ink     #6FA8E5   (lighter blue for legibility on dark)
-  ember   #F08A52
-  text    #F1ECE2
-```
-
-The warm parchment background is the signature — no white app-shell. It evokes a beis medrash without being a costume.
-
-### 3.3 Typography Scale
-
-```
-display  Fraunces 600 — page heroes
-h1       Inter 700 — 28/32 mobile, 36/40 desktop
-h2       Inter 600 — 22/28
-h3       Inter 600 — 18/24
-body     Inter 400 — 16/24
-small    Inter 400 — 14/20
-mono     JetBrains Mono — for codes/IDs only
-hebrew   Frank Ruhl Libre — Hebrew text, slightly larger size for parity
-```
-
-### 3.4 Component Voice
-
-- Rounded corners: `rounded-xl` default, `rounded-2xl` for cards
-- Borders: 1px stone-200 in light, stone-800 in dark — never pure black
-- Shadows: warm (`shadow-[0_2px_8px_rgba(46,32,16,0.06)]`), never cool
-- Buttons: primary = ink bg / parchment text; accent = ember bg; ghost = no border
-- Empty states: illustrated with a simple Hebrew letter mark (ב, ח, etc.) at low opacity
-
-### 3.5 Mobile-First Rules (non-negotiable)
-
-- **Every page must work at 375px wide with no horizontal scroll.** Test in dev tools at iPhone SE width.
-- Bottom tab bar on mobile: Home, Find, Chaburas, Messages, Profile
-- Tap targets ≥ 44px
-- Sheets/drawers (shadcn `Sheet`) for secondary actions on mobile, dialogs on desktop
-- No fixed-pixel widths; use `w-full max-w-*` containers
-
-### 3.6 Motion
-
-- Page transitions: framer-motion fade + 4px slide, 180ms
-- Connection accepted: confetti burst (`canvas-confetti`) + a Hebrew ב flash for 700ms — _the_ moment of delight
-- Sending message: optimistic, with subtle scale-in
-- Sonner toasts on every async action — success, error, _no silent success_
-
-### 3.7 Empty & Loading States
-
-- Loading: shadcn `Skeleton` matching final layout. Never spinners for content.
-- Empty states are first-class screens: heading, supporting line, primary CTA, and a soft Hebrew letter watermark. Examples below in each page spec.
+- **Mobile-first, non-negotiable**: every page must work at 375px wide with no horizontal scroll. Bottom tab bar on mobile: Home, Find, Chaburas, Messages, Profile. Tap targets ≥ 44px. Sheets/drawers (shadcn `Sheet`) for secondary actions on mobile, dialogs on desktop.
+- **Motion**: page transitions via framer-motion (fade + 4px slide, 180ms). Connection accepted → confetti burst (`canvas-confetti`). Sonner toasts on every async action — success and error, no silent success.
+- **Empty & loading states**: shadcn `Skeleton` matching the final layout, never bare spinners. Empty states are first-class: heading, supporting line, primary CTA.
 
 ---
 
