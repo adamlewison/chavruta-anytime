@@ -1,17 +1,10 @@
 {
   "entries": [
-    "ARCH005|src/app/(app)/sessions/[id]/page.tsx",
     "ARCH005|src/app/(call)/call/[occurrenceId]/call-page-client.tsx",
     "ARCH005|src/components/onboarding/onboarding-wizard.tsx",
     "ARCH005|src/components/settings/learning-profiles.tsx",
     "ARCH005|src/domain/availability.ts",
     "ARCH005|src/server/actions/chaburas.ts",
-    "ARCH005|src/server/actions/sessions.ts",
-    "ARCH006|src/app/(app)/chaburas/page.tsx",
-    "ARCH006|src/app/(app)/dashboard/page.tsx",
-    "ARCH006|src/app/(app)/notifications/page.tsx",
-    "ARCH006|src/app/(app)/profile/[userId]/page.tsx",
-    "ARCH006|src/app/(app)/sessions/[id]/page.tsx",
-    "ARCH006|src/app/(auth)/verify/page.tsx"
+    "ARCH005|src/server/actions/sessions.ts"
   ]
 }
