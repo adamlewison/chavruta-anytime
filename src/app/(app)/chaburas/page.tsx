@@ -3,18 +3,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, BookOpen, Users, Globe, Lock } from "lucide-react";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
-import { chaburas, chaburaMembers } from "@/db/schema";
 import {
-  and,
-  desc,
-  eq,
-  ilike,
-  inArray,
-  notInArray,
-  or,
-  sql,
-} from "drizzle-orm";
+  getUserChaburaMembershipIds,
+  listMyChaburas,
+  listDiscoverChaburas,
+} from "@/server/queries/chaburas";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -105,73 +98,13 @@ export default async function ChaburasPage({
   let discover: ChaburaRow[] = [];
 
   try {
-    const myMemberships = await db()
-      .select({ chaburaId: chaburaMembers.chaburaId })
-      .from(chaburaMembers)
-      .where(
-        and(
-          eq(chaburaMembers.userId, userId),
-          inArray(chaburaMembers.role, ["rosh", "member"]),
-        ),
-      );
-
-    const myIds = myMemberships.map((m) => m.chaburaId);
-
-    const memberCountSql = sql<number>`(
-      SELECT COUNT(*)::int FROM ${chaburaMembers}
-      WHERE ${chaburaMembers.chaburaId} = ${chaburas.id}
-        AND ${chaburaMembers.role} IN ('rosh', 'member')
-    )`;
-
-    const searchFilter = query
-      ? or(
-          ilike(chaburas.name, `%${query}%`),
-          ilike(chaburas.description, `%${query}%`),
-        )
-      : undefined;
+    const myIds = await getUserChaburaMembershipIds(userId);
 
     if (myIds.length > 0) {
-      myChaburas = await db()
-        .select({
-          id: chaburas.id,
-          slug: chaburas.slug,
-          name: chaburas.name,
-          description: chaburas.description,
-          image: chaburas.image,
-          isPublic: chaburas.isPublic,
-          memberCount: memberCountSql,
-        })
-        .from(chaburas)
-        .where(
-          and(
-            inArray(chaburas.id, myIds),
-            ...(searchFilter ? [searchFilter] : []),
-          ),
-        )
-        .orderBy(desc(chaburas.createdAt))
-        .limit(50);
+      myChaburas = await listMyChaburas(myIds, query || undefined);
     }
 
-    discover = await db()
-      .select({
-        id: chaburas.id,
-        slug: chaburas.slug,
-        name: chaburas.name,
-        description: chaburas.description,
-        image: chaburas.image,
-        isPublic: chaburas.isPublic,
-        memberCount: memberCountSql,
-      })
-      .from(chaburas)
-      .where(
-        and(
-          eq(chaburas.isPublic, true),
-          myIds.length > 0 ? notInArray(chaburas.id, myIds) : undefined,
-          ...(searchFilter ? [searchFilter] : []),
-        ),
-      )
-      .orderBy(desc(chaburas.createdAt))
-      .limit(50);
+    discover = await listDiscoverChaburas(myIds, query || undefined);
   } catch (error) {
     console.error("Chaburas list load error:", error);
   }

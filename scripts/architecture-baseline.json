@@ -1,9 +1,5 @@
 {
   "entries": [
-    "ARCH001|src/app/(app)/chaburas/[slug]/manage/page.tsx",
-    "ARCH001|src/app/(app)/chaburas/[slug]/page.tsx",
-    "ARCH001|src/app/(app)/chaburas/new/page.tsx",
-    "ARCH001|src/app/(app)/chaburas/page.tsx",
     "ARCH001|src/app/(app)/connections/chaburas/page.tsx",
     "ARCH001|src/app/(app)/connections/chavrutas/page.tsx",
     "ARCH001|src/app/(app)/connections/layout.tsx",
@@ -30,7 +26,6 @@
     "ARCH005|src/domain/availability.ts",
     "ARCH005|src/server/actions/chaburas.ts",
     "ARCH005|src/server/actions/sessions.ts",
-    "ARCH006|src/app/(app)/chaburas/[slug]/page.tsx",
     "ARCH006|src/app/(app)/chaburas/page.tsx",
     "ARCH006|src/app/(app)/dashboard/page.tsx",
     "ARCH006|src/app/(app)/messages/page.tsx",

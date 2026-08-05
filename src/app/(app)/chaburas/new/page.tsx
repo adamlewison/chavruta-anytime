@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
-import { subjects } from "@/db/schema";
-import { asc } from "drizzle-orm";
+import { listSubjectOptions } from "@/server/queries/subjects";
 import { NewChaburaForm } from "@/components/chaburas/new-chabura-form";
 
 export const metadata: Metadata = {
@@ -21,10 +19,7 @@ export default async function NewChaburaPage() {
 
   let subjectOptions: Array<{ id: string; name: string }> = [];
   try {
-    subjectOptions = await db()
-      .select({ id: subjects.id, name: subjects.name })
-      .from(subjects)
-      .orderBy(asc(subjects.sortOrder), asc(subjects.name));
+    subjectOptions = await listSubjectOptions();
   } catch (error) {
     console.error("Load subjects error:", error);
   }
