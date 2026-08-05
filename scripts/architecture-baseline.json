@@ -1,7 +1,3 @@
 {
-  "entries": [
-    "ARCH005|src/app/(call)/call/[occurrenceId]/call-page-client.tsx",
-    "ARCH005|src/components/onboarding/onboarding-wizard.tsx",
-    "ARCH005|src/components/settings/learning-profiles.tsx"
-  ]
+  "entries": []
 }
