@@ -84,6 +84,7 @@ Four hard rules, all machine-checked:
 2. **`src/domain/**` must not import `next`, `react`, `@/db`, `@/server`, or `@/components`.** Domain logic must be runnable and testable without the framework.
 3. **`src/app/**` files contain no DB access and no business logic.** A route file authenticates, calls a query or renders a component, and returns.
 4. **Always import via `@/`.** Deep relative imports (`../../`) are banned. Same-directory `./` is fine.
+5. **Third-party SDK clients and anything reading a required env var must be constructed lazily, inside a function, never at module scope.** Module-scope construction (`export const resend = new Resend(process.env.RESEND_API_KEY)`) makes that env var a build-time dependency for every module that transitively imports it, even ones that never call it. Export an accessor that constructs and memoises on first call instead — see `db()` in `src/db/index.ts` or `resend()` in `src/server/email.ts`.
 
 ---
 
@@ -137,6 +138,7 @@ Budgets protect an already-healthy distribution (86% of files are ≤200 LOC). T
 | One feature's components importing another's | Feature dirs are peers. Shared UI moves up to `components/ui/` or the shared layer |
 | `"use client"` in `src/server/` or `src/domain/` | These layers must stay server-safe and framework-free respectively |
 | Hand-editing `src/db/migrations/` | Generated artifacts. Change the schema and regenerate |
+| Constructing a third-party SDK client (or reading a required env var) at module scope | Forces that env var to be present at build time for every transitive importer — invisible to `tsc`, only caught by `pnpm build`. Wrap it in a lazily-memoised accessor function instead, e.g. `db()` / `resend()` |
 
 ---
 

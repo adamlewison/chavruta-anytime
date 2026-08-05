@@ -27,6 +27,7 @@ const RULES = {
   ARCH007: "Hooks must live in src/hooks and be named use-*",
   ARCH008: "Server Action module must validate input (safeParse/parse)",
   ARCH009: 'No "use client" in src/server or src/domain',
+  ARCH010: "Third-party SDK client (or process.env read) constructed at module scope — wrap in a lazy accessor",
 };
 
 const ROUTE_FILES = new Set([
@@ -94,6 +95,17 @@ for (const file of files) {
   // --- ARCH007: hook placement ---
   if (!inHooks && /export\s+(async\s+)?function\s+use[A-Z]/.test(src) && !exempt.has("ARCH007")) {
     add("ARCH007", file, lines.findIndex((l) => /export\s+(async\s+)?function\s+use[A-Z]/.test(l)) + 1);
+  }
+
+  // --- ARCH010: SDK client / required-env-var read at module scope ---
+  // Heuristic: an unindented (module-scope, not inside a function body)
+  // assignment that both `new`s something and reads process.env inline.
+  if ((inServer || inDb) && !exempt.has("ARCH010")) {
+    lines.forEach((line, i) => {
+      if (/^(export\s+)?const\s+\w+.*=\s*new\s+[A-Z]\w*\(.*process\.env/.test(line)) {
+        add("ARCH010", file, i + 1);
+      }
+    });
   }
 
   // --- import-based rules ---

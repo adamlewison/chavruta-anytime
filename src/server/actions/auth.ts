@@ -51,7 +51,7 @@ export async function sendPasscode(
       expires,
     });
 
-    await resend.emails.send({
+    await resend().emails.send({
       from: RESEND_FROM,
       to: normalized,
       subject: "Your ChavrutaAnytime sign-in code",

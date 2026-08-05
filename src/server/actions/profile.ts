@@ -156,7 +156,7 @@ export async function sendEmailChangeCode(
       expires,
     });
 
-    await resend.emails.send({
+    await resend().emails.send({
       from: RESEND_FROM,
       to: normalized,
       subject: "Verify your new email — ChavrutaAnytime",
