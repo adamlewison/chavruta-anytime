@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
-import { connections, users, conversations, conversationMembers } from "@/db/schema";
-import { eq, or, and } from "drizzle-orm";
+import { listConnectionsForUser } from "@/server/queries/connections";
+import {
+  listUserDmConversationIds,
+  isConversationMember,
+} from "@/server/queries/messages";
 import { ChavrutasView } from "@/components/connections/chavrutas-view";
 
 export default async function ChavrutasPage() {
@@ -27,47 +29,17 @@ export default async function ChavrutasPage() {
   let pendingSent: ConnectionRow[] = [];
 
   try {
-    const rows = await db()
-      .select({
-        id: connections.id,
-        status: connections.status,
-        requesterId: connections.requesterId,
-        addresseeId: connections.addresseeId,
-        otherName: users.name,
-        otherImage: users.image,
-        otherId: users.id,
-      })
-      .from(connections)
-      .innerJoin(
-        users,
-        or(
-          and(eq(connections.requesterId, userId), eq(users.id, connections.addresseeId)),
-          and(eq(connections.addresseeId, userId), eq(users.id, connections.requesterId)),
-        )!,
-      )
-      .where(or(eq(connections.requesterId, userId), eq(connections.addresseeId, userId)));
+    const rows = await listConnectionsForUser(userId);
 
-    const myConvMemberships = await db()
-      .select({ conversationId: conversationMembers.conversationId })
-      .from(conversationMembers)
-      .innerJoin(conversations, and(
-        eq(conversations.id, conversationMembers.conversationId),
-        eq(conversations.type, "dm"),
-      ))
-      .where(eq(conversationMembers.userId, userId));
-
-    const myConvIds = myConvMemberships.map((m) => m.conversationId);
+    const myConvIds = await listUserDmConversationIds(userId);
 
     const rowsWithConv = await Promise.all(
       rows.map(async (r) => {
         if (r.status !== "accepted") return { ...r, conversationId: null };
         let convId: string | null = null;
         for (const cid of myConvIds) {
-          const [other] = await db()
-            .select()
-            .from(conversationMembers)
-            .where(and(eq(conversationMembers.conversationId, cid), eq(conversationMembers.userId, r.otherId)));
-          if (other) { convId = cid; break; }
+          const isMember = await isConversationMember(cid, r.otherId);
+          if (isMember) { convId = cid; break; }
         }
         return { ...r, conversationId: convId };
       }),

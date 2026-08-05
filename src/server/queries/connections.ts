@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { connections } from "@/db/schema";
-import { eq, and, or } from "drizzle-orm";
+import { connections, users } from "@/db/schema";
+import { eq, and, or, count } from "drizzle-orm";
 
 /** requesterId/addresseeId of a connection, by id, with no ownership check. */
 export async function getConnectionPair(connectionId: string) {
@@ -12,6 +12,38 @@ export async function getConnectionPair(connectionId: string) {
     .from(connections)
     .where(eq(connections.id, connectionId));
   return row ?? null;
+}
+
+/** Number of pending connection requests waiting on the user's response. */
+export async function getPendingConnectionCount(userId: string) {
+  const [row] = await db()
+    .select({ n: count() })
+    .from(connections)
+    .where(and(eq(connections.addresseeId, userId), eq(connections.status, "pending")));
+  return row?.n ?? 0;
+}
+
+/** All connections (accepted or pending, either direction) involving the user, with the other party's name/image. */
+export async function listConnectionsForUser(userId: string) {
+  return db()
+    .select({
+      id: connections.id,
+      status: connections.status,
+      requesterId: connections.requesterId,
+      addresseeId: connections.addresseeId,
+      otherName: users.name,
+      otherImage: users.image,
+      otherId: users.id,
+    })
+    .from(connections)
+    .innerJoin(
+      users,
+      or(
+        and(eq(connections.requesterId, userId), eq(users.id, connections.addresseeId)),
+        and(eq(connections.addresseeId, userId), eq(users.id, connections.requesterId)),
+      )!,
+    )
+    .where(or(eq(connections.requesterId, userId), eq(connections.addresseeId, userId)));
 }
 
 /** A connection by id, only if the given user is one of its two parties. */

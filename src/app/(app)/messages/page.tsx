@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
-import { conversations, conversationMembers, messages, users, chaburas } from "@/db/schema";
-import { eq, and, desc, ne } from "drizzle-orm";
+import {
+  listUserConversationMemberships,
+  getOtherDmMember,
+  getConversationLatestMessage,
+} from "@/server/queries/messages";
+import { getUserHeader } from "@/server/queries/users";
+import { getChaburaNameImage } from "@/server/queries/chaburas";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/brand/empty-state";
 import { cn } from "@/lib/utils";
@@ -33,16 +37,7 @@ export default async function MessagesPage() {
   const convs: ConvRow[] = [];
 
   try {
-    const myMemberships = await db()
-      .select({
-        conversationId: conversationMembers.conversationId,
-        lastReadAt: conversationMembers.lastReadAt,
-        convType: conversations.type,
-        chaburaId: conversations.chaburaId,
-      })
-      .from(conversationMembers)
-      .innerJoin(conversations, eq(conversations.id, conversationMembers.conversationId))
-      .where(eq(conversationMembers.userId, userId));
+    const myMemberships = await listUserConversationMemberships(userId);
 
     for (const membership of myMemberships) {
       const cid = membership.conversationId;
@@ -51,38 +46,24 @@ export default async function MessagesPage() {
       let displayImage: string | null = null;
 
       if (membership.convType === "dm") {
-        const [other] = await db()
-          .select({ userId: conversationMembers.userId })
-          .from(conversationMembers)
-          .where(and(eq(conversationMembers.conversationId, cid), ne(conversationMembers.userId, userId)));
+        const otherId = await getOtherDmMember(cid, userId);
 
-        if (!other) continue;
+        if (!otherId) continue;
 
-        const [otherUser] = await db()
-          .select({ name: users.name, image: users.image })
-          .from(users)
-          .where(eq(users.id, other.userId));
+        const otherUser = await getUserHeader(otherId);
 
         displayName = otherUser?.name ?? null;
         displayImage = otherUser?.image ?? null;
       } else {
         // chabura conversation — look up the chabura name
         if (!membership.chaburaId) continue;
-        const [chabura] = await db()
-          .select({ name: chaburas.name, image: chaburas.image })
-          .from(chaburas)
-          .where(eq(chaburas.id, membership.chaburaId));
+        const chabura = await getChaburaNameImage(membership.chaburaId);
 
         displayName = chabura?.name ?? null;
         displayImage = chabura?.image ?? null;
       }
 
-      const [latest] = await db()
-        .select({ body: messages.body, createdAt: messages.createdAt })
-        .from(messages)
-        .where(eq(messages.conversationId, cid))
-        .orderBy(desc(messages.createdAt))
-        .limit(1);
+      const latest = await getConversationLatestMessage(cid);
 
       convs.push({
         conversationId: cid,
