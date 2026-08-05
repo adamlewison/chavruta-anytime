@@ -11,7 +11,7 @@ ChavrutaAnytime matches learners with **chavruta** partners (1-on-1 Torah study)
 **Core features:**
 - Intelligent match scoring based on subject compatibility, shared availability, language, and gender preference
 - Recurring session scheduling with iCalendar RRULE support
-- Embedded video via Jitsi Meet (no account required)
+- Embedded video and voice calls via LiveKit
 - Group chabura management with member roles
 - 1-on-1 and group messaging
 - Google OAuth and email passcode authentication
@@ -28,16 +28,19 @@ ChavrutaAnytime matches learners with **chavruta** partners (1-on-1 Torah study)
 | Database | Neon PostgreSQL + Drizzle ORM |
 | Auth | Auth.js v5 (Google OAuth, email passcode) |
 | Styling | Tailwind CSS 4 + shadcn/ui + Radix UI |
-| Forms | react-hook-form + Zod |
 | Date/Time | Luxon (always use Luxon, never raw `Date`) |
-| File Upload | UploadThing |
-| Email | Resend + React Email |
+| Video | LiveKit (`livekit-client` + `livekit-server-sdk`) |
+| File Upload | Vercel Blob (`@vercel/blob`) |
+| Email | Resend |
 | Data Fetching | TanStack Query |
 | Animation | Framer Motion |
-| Analytics | PostHog |
-| Error Tracking | Sentry |
-| Testing | Vitest + Playwright |
+| Validation | Zod (schemas in `src/domain/schemas/`) |
+| Testing | Vitest |
 | Hosting | Vercel |
+
+> **Declared but not yet wired:** `@sentry/nextjs`, `posthog-js`, `react-hook-form`,
+> `@hookform/resolvers`, and `@playwright/test` are in `package.json` but have no
+> integration code. Don't assume error tracking, analytics, or E2E coverage exist.
 
 ---
 
@@ -59,18 +62,18 @@ cp .env.example .env.local
 
 | Variable | Description |
 |---|---|
-| `DATABASE_URL` | Neon PostgreSQL pooled connection string |
-| `DIRECT_URL` | Neon direct (non-pooled) connection string |
-| `NEXTAUTH_URL` | Auth callback URL (`http://localhost:3000` locally) |
-| `NEXTAUTH_SECRET` | JWT secret — generate with `openssl rand -base64 32` |
+| `DATABASE_URL` | Neon PostgreSQL connection string |
+| `NEXTAUTH_SECRET` | JWT secret — generate with `openssl rand -base64 32`. Read implicitly by Auth.js |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 | `RESEND_API_KEY` | Resend email API key |
 | `RESEND_FROM` | Sender address (e.g. `hello@chavrutaanytime.com`) |
-| `UPLOADTHING_TOKEN` | UploadThing token for file storage |
-| `CRON_SECRET` | Secret header for Vercel cron endpoints |
-| `SENTRY_DSN` | Sentry DSN for error tracking |
-| `NEXT_PUBLIC_POSTHOG_KEY` | PostHog project API key (exposed to client) |
+| `LIVEKIT_API_KEY` | LiveKit server API key |
+| `LIVEKIT_API_SECRET` | LiveKit server API secret |
+| `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit websocket URL (exposed to client) |
+| `NEXT_PUBLIC_SITE_URL` | Canonical site origin, used in email links |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token. Auto-injected on Vercel; needed locally |
+| `CRON_SECRET` | Bearer token for the Vercel cron endpoints |
 
 ### 3. Set up the database
 
@@ -91,20 +94,9 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Project structure
 
-```
-src/
-  app/
-    (app)/           # Authenticated routes
-    (auth)/          # Sign-in, verify
-    api/             # Route handlers (auth, cron, upload, poll)
-  components/        # React components, organized by feature
-  db/
-    schema/          # Drizzle table definitions
-    migrations/      # Generated SQL migrations
-  lib/               # Shared utilities (matching, availability, auth)
-  server/            # Server Actions (all data mutations)
-  styles/            # Global CSS
-```
+See **[`ARCHITECTURE.md`](./ARCHITECTURE.md)** — it is the single source of truth for
+the directory tree, naming rules, layer boundaries, and where any new file belongs.
+Run `pnpm check:arch` to verify changes against it.
 
 ### Key routes
 

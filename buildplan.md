@@ -22,11 +22,14 @@ The product wins when a user signs up Sunday night and is mid-shiur with a real 
 
 ---
 
-## 2. Tech Stack (locked)
+## 2. Tech Stack
+
+> **As-built, corrected from the original spec.** Rows marked ⚠ differ from what was
+> originally planned. The README table is the authoritative copy.
 
 | Layer        | Choice                                                                              |
 | ------------ | ----------------------------------------------------------------------------------- |
-| Framework    | **Next.js 15** (App Router, RSC, Server Actions)                                    |
+| Framework    | ⚠ **Next.js 16** (App Router, RSC, Server Actions) — spec said 15                   |
 | Database     | **Neon** Postgres (serverless)                                                      |
 | ORM          | **Drizzle ORM** + drizzle-kit migrations                                            |
 | Auth         | **NextAuth v5 (Auth.js)** — Google OAuth + Email passcode (Resend)                  |
@@ -35,17 +38,17 @@ The product wins when a user signs up Sunday night and is mid-shiur with a real 
 | Styling      | **Tailwind CSS** with custom palette                                                |
 | Animations   | **framer-motion** + Tailwind transitions                                            |
 | Toasts       | **sonner**                                                                          |
-| Forms        | **react-hook-form** + **zod**                                                       |
+| Validation   | ⚠ **zod** — `react-hook-form` was specified but is unused                           |
 | Dates/TZ     | **luxon** (always; never raw `Date` for TZ math)                                    |
 | Recurrence   | **rrule**                                                                           |
 | Live updates | **Polling** (5s) — TanStack Query + ETag/304, paused on hidden tabs (no websockets) |
-| Email        | **Resend** + **react-email**                                                        |
-| Storage      | **UploadThing** (profile pics, chabura pics, subject pics)                          |
-| Video        | **Jitsi Meet** (free, no auth, no API keys)                                         |
-| Analytics    | **PostHog**                                                                         |
-| Errors       | **Sentry**                                                                          |
+| Email        | ⚠ **Resend** — `react-email` was specified but is unused                            |
+| Storage      | ⚠ **Vercel Blob** (`@vercel/blob`) — spec said UploadThing                          |
+| Video        | ⚠ **LiveKit** — spec said Jitsi Meet (see §10)                                      |
+| Analytics    | ⚠ **PostHog** — declared, not wired                                                 |
+| Errors       | ⚠ **Sentry** — declared, not wired                                                  |
 
-Node 20. pnpm. TypeScript strict. ESLint + Prettier. Husky pre-commit.
+⚠ Node 22 (`.nvmrc`), not 20. pnpm. TypeScript strict. ESLint. Husky pre-commit.
 
 ---
 
@@ -594,47 +597,18 @@ Idempotent. Logs to a `cron_runs` table or PostHog.
 
 ---
 
-## 10. Video Meetings (Jitsi)
+## 10. Video Meetings
 
-We use **Jitsi Meet** — the free public instance at `meet.jit.si`. No API, no auth, no SDK keys, no quotas. It just works.
+> **Superseded.** This section originally specified Jitsi Meet. The app ships on
+> **LiveKit** (`livekit-client`, `livekit-server-sdk`, `@livekit/components-react`)
+> with server-minted access tokens from `/api/livekit/token`. The rationale below
+> for avoiding Google Meet still holds; the Jitsi implementation detail does not.
+> Env vars: `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `NEXT_PUBLIC_LIVEKIT_URL`.
 
-### 10.1 Why not Google Meet
+The schema impact is unchanged: a session stores a room identifier, every
+occurrence in the series reuses it, and swapping providers touches only the room
+URL generator.
 
-Google Meet has no public REST API to mint a standalone meeting URL — the supported flow is via the Calendar API, which forces the session creator to be Google-authenticated and adds a heavy permissions surface. Since we want email-passcode users to have full feature parity (and we don't want to manage Calendar OAuth refresh tokens, scope upgrades, and quota), we skip Google Meet entirely.
-
-### 10.2 Room generation
-
-On session create, generate a stable, hard-to-guess room slug:
-
-```ts
-const slug = `ChavrutaAnytime-${nanoid(16)}`; // e.g. ChavrutaAnytime-V1StGXR8_Z5jdHi6
-const meetUrl = `https://meet.jit.si/${slug}`;
-```
-
-Persist on `learning_sessions.meetUrl`. Every occurrence in the series reuses the same URL — Jitsi rooms are ephemeral; the same slug just works whenever someone joins.
-
-For _one-off_ occurrences cancelled and replaced, no action — the old URL simply goes unused. For brand-new ad-hoc sessions, generate a fresh slug.
-
-### 10.3 Embedding vs. opening externally
-
-- **Default**: open `meetUrl` in a new tab. On mobile, this deep-links to the Jitsi Meet app if installed (handled by the `meet.jit.si` site itself).
-- **Optional embed**: on the occurrence detail page during the active window, optionally render the **Jitsi IFrame API** (`<iframe src="https://meet.jit.si/{slug}#config.prejoinPageEnabled=false&userInfo.displayName={name}">`) so the user can join without leaving the app. Tested at 375px width — collapses to full-screen modal on mobile.
-
-### 10.4 Pre-fill display name
-
-Pass `?userInfo.displayName=` URL param so the user appears as their real name to their chavruta. No login prompt inside Jitsi.
-
-### 10.5 In-app meeting UX
-
-- Dashboard "Next session" card: 24h before → muted "Tomorrow at 9pm". 10 min before → ember **Join Meeting** button. During → big "In session — Join now." After `endsAt+30` → "Meeting ended — add notes?"
-- Occurrence detail page mirrors the same window logic
-- Both parties see the same room URL, so whoever clicks first lands and waits
-
-### 10.6 Future swap
-
-If we ever want a paid/branded experience, we can swap to **Daily.co** or **Whereby Embedded** by changing only the `meetUrl` generator. Nothing else in the schema changes.
-
----
 
 ## 11. Notifications
 
@@ -880,74 +854,33 @@ All mutating routes use **Server Actions** where called from RSC, and the API ro
 
 ## 15. Environment Variables
 
+See the README for the authoritative list — it is kept in sync with the vars the
+code actually reads. Notably `UPLOADTHING_*` and `DIRECT_URL` from the original
+spec are no longer used, and the LiveKit and Vercel Blob vars were added.
+
 ```
-DATABASE_URL                 # Neon
-DIRECT_URL                   # for migrations (non-pooled)
-NEXTAUTH_URL
+DATABASE_URL
 NEXTAUTH_SECRET
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
 RESEND_API_KEY
-RESEND_FROM=hello@chavrutaanytime.com
-UPLOADTHING_TOKEN            # primary token for v7+ SDK
-UPLOADTHING_SECRET           # if older SDK pinned
+RESEND_FROM
+LIVEKIT_API_KEY
+LIVEKIT_API_SECRET
+NEXT_PUBLIC_LIVEKIT_URL
+NEXT_PUBLIC_SITE_URL
+BLOB_READ_WRITE_TOKEN
 CRON_SECRET
-SENTRY_DSN
-NEXT_PUBLIC_POSTHOG_KEY
 ```
 
 ---
 
 ## 16. Project Structure
 
-```
-src/
-  app/
-    (marketing)/page.tsx
-    (auth)/sign-in/page.tsx
-    (auth)/verify/page.tsx
-    (app)/
-      layout.tsx                  // mobile tab bar + header
-      dashboard/page.tsx
-      find/page.tsx
-      find/[userId]/page.tsx
-      connections/page.tsx
-      chaburas/page.tsx
-      chaburas/new/page.tsx
-      chaburas/[slug]/...
-      messages/...
-      sessions/...
-      profile/...
-      settings/page.tsx
-      notifications/page.tsx
-    api/...
-  components/
-    ui/                           // shadcn
-    brand/                        // Logo, WordMark, BeisLetter (watermark)
-    availability/                 // GridPicker, HeatMap, presets
-    sessions/                     // RRuleBuilder, OccurrenceCard, JoinButton
-    matching/                     // MatchCard, FilterSheet
-    chat/                         // Thread, MessageBubble, Composer
-    layout/                       // BottomTabs, AppHeader, EmptyState
-  db/
-    schema/
-    migrations/
-    index.ts
-  lib/
-    auth.ts
-    poll.ts                       // usePoll() hook + ETag helpers
-    jitsi.ts                      // generateRoomUrl(), buildPrejoinUrl()
-    uploadthing.ts                // ut router definitions + client helpers
-    availability.ts
-    rrule.ts
-    matching.ts
-    email/templates/
-  server/
-    actions/
-    services/
-  styles/
-    globals.css
-```
+> **Superseded by [`ARCHITECTURE.md`](./ARCHITECTURE.md)**, which is the enforced
+> standard. The tree originally sketched here was never fully built (notably
+> `server/services/`), and `ARCHITECTURE.md` reflects both what exists and what
+> the checker enforces.
 
 ---
 
