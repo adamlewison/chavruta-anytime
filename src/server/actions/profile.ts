@@ -8,6 +8,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { resend, RESEND_FROM } from "@/server/email";
 import { generateCode, encodeToken, verifyToken } from "@/domain/token";
+import { updateProfileSchema, updateAvailabilitySchema, sendEmailChangeCodeSchema, confirmEmailChangeSchema, disconnectAccountSchema } from "@/domain/schemas/profile";
+import { firstError } from "@/domain/schemas/common";
 
 export async function updateProfile(data: {
   name?: string;
@@ -22,6 +24,9 @@ export async function updateProfile(data: {
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = updateProfileSchema.safeParse(data);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (data.name !== undefined) updates.name = data.name.trim();
@@ -53,6 +58,9 @@ export async function updateAvailability(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = updateAvailabilitySchema.safeParse(bitmapBase64);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const bytes = Buffer.from(bitmapBase64, "base64");
     if (bytes.length !== 42) {
@@ -101,6 +109,9 @@ export async function sendEmailChangeCode(
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, error: "Not authenticated" };
+
+    const parsed = sendEmailChangeCodeSchema.safeParse(newEmail);
+    if (!parsed.success) return { success: false, error: "Invalid email address" };
 
     const normalized = newEmail.trim().toLowerCase();
     if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
@@ -167,6 +178,9 @@ export async function confirmEmailChange(
     const session = await auth();
     if (!session?.user?.id) return { success: false, error: "Not authenticated" };
 
+    const parsed = confirmEmailChangeSchema.safeParse({ newEmail, code });
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
+
     const normalized = newEmail.trim().toLowerCase();
     const identifier = `email-change:${normalized}`;
     const now = new Date();
@@ -223,6 +237,9 @@ export async function disconnectAccount(
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, error: "Not authenticated" };
+
+    const parsed = disconnectAccountSchema.safeParse(provider);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     await db()
       .delete(accounts)

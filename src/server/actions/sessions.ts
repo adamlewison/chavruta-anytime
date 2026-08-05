@@ -16,6 +16,8 @@ import {
 import { eq, and, gt, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { RRule } from "rrule";
+import { createSessionSchema, sessionIdSchema, occurrenceIdSchema, updateOccurrenceStatusSchema, rescheduleOccurrenceSchema, updateSessionScheduleSchema, saveOccurrenceNotesSchema } from "@/domain/schemas/sessions";
+import { firstError } from "@/domain/schemas/common";
 
 /* ------------------------------------------------------------------ */
 /*  Internal helpers                                                   */
@@ -106,6 +108,9 @@ export async function createSession(data: {
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = createSessionSchema.safeParse(data);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const userId = session.user.id;
     const meetUrl = `https://meet.jit.si/ChavrutaAnytime-${nanoid(16)}`;
@@ -223,6 +228,9 @@ export async function pauseSession(
       return { success: false, error: "Not authenticated" };
     }
 
+    const parsed = sessionIdSchema.safeParse(sessionId);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
+
     const [ls] = await db()
       .select({ createdById: learningSessions.createdById })
       .from(learningSessions)
@@ -253,6 +261,9 @@ export async function cancelSession(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = sessionIdSchema.safeParse(sessionId);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const userId = session.user.id;
 
@@ -349,6 +360,9 @@ export async function resumeSession(
       return { success: false, error: "Not authenticated" };
     }
 
+    const parsed = sessionIdSchema.safeParse(sessionId);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
+
     const [ls] = await db()
       .select({ createdById: learningSessions.createdById })
       .from(learningSessions)
@@ -379,6 +393,9 @@ export async function cancelOccurrence(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = occurrenceIdSchema.safeParse(occurrenceId);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const [occ] = await db()
       .select({ sessionId: sessionOccurrences.sessionId })
@@ -422,6 +439,9 @@ export async function restoreOccurrence(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = occurrenceIdSchema.safeParse(occurrenceId);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const [occ] = await db()
       .select({ sessionId: sessionOccurrences.sessionId })
@@ -467,6 +487,9 @@ export async function updateOccurrenceStatus(
       return { success: false, error: "Not authenticated" };
     }
 
+    const parsed = updateOccurrenceStatusSchema.safeParse({ occurrenceId, status });
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
+
     const [occ] = await db()
       .select({ sessionId: sessionOccurrences.sessionId })
       .from(sessionOccurrences)
@@ -506,6 +529,9 @@ export async function rescheduleOccurrence(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = rescheduleOccurrenceSchema.safeParse({ occurrenceId, newStartsAt, newEndsAt });
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const [occ] = await db()
       .select({
@@ -566,6 +592,9 @@ export async function updateSessionSchedule(data: {
     const session = await auth();
     if (!session?.user?.id)
       return { success: false, error: "Not authenticated" };
+
+    const parsed = updateSessionScheduleSchema.safeParse(data);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const [ls] = await db()
       .select({
@@ -638,6 +667,9 @@ export async function saveOccurrenceNotes(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = saveOccurrenceNotesSchema.safeParse({ occurrenceId, notes });
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const [occ] = await db()
       .select({

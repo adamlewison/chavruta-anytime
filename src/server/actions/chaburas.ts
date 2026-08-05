@@ -11,6 +11,8 @@ import {
   users,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { createChaburaSchema, chaburaIdSchema, chaburaMemberSchema, updateChaburaSchema } from "@/domain/schemas/chaburas";
+import { firstError } from "@/domain/schemas/common";
 
 export async function createChabura(data: {
   name: string;
@@ -25,6 +27,9 @@ export async function createChabura(data: {
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = createChaburaSchema.safeParse(data);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const userId = session.user.id;
 
@@ -90,6 +95,9 @@ export async function joinChabura(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = chaburaIdSchema.safeParse(chaburaId);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const userId = session.user.id;
 
@@ -183,6 +191,9 @@ export async function declineMember(
       return { success: false, error: "Not authenticated" };
     }
 
+    const parsed = chaburaMemberSchema.safeParse({ chaburaId, userId });
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
+
     // Verify current user is rosh
     const [membership] = await db()
       .select()
@@ -223,6 +234,9 @@ export async function updateChabura(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = updateChaburaSchema.safeParse({ chaburaId, data });
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     // Verify rosh
     const [membership] = await db()
@@ -265,6 +279,9 @@ export async function leaveChabura(
       return { success: false, error: "Not authenticated" };
     }
 
+    const parsed = chaburaIdSchema.safeParse(chaburaId);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
+
     const userId = session.user.id;
 
     const [membership] = await db()
@@ -300,6 +317,9 @@ export async function approveMember(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = chaburaMemberSchema.safeParse({ chaburaId, userId });
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const currentUserId = session.user.id;
 

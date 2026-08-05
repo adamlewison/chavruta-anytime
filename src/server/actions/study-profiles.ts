@@ -5,6 +5,8 @@ import { db } from "@/db";
 import { studyProfiles, subjects } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { createStudyProfileSchema, updateStudyProfileSchema } from "@/domain/schemas/study-profiles";
+import { firstError } from "@/domain/schemas/common";
 
 export type StudyProfileRow = {
   id: string;
@@ -63,6 +65,9 @@ export async function createStudyProfile(data: {
     const session = await auth();
     if (!session?.user?.id) return { success: false, error: "Not authenticated" };
 
+    const parsed = createStudyProfileSchema.safeParse(data);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
+
     await db().insert(studyProfiles).values({
       userId: session.user.id,
       subjectId: data.subjectId,
@@ -90,6 +95,9 @@ export async function updateStudyProfile(data: {
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, error: "Not authenticated" };
+
+    const parsed = updateStudyProfileSchema.safeParse(data);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     await db()
       .update(studyProfiles)

@@ -50,15 +50,6 @@
     "ARCH006|src/app/(auth)/verify/page.tsx",
     "ARCH006|src/app/(call)/call/[occurrenceId]/page.tsx",
     "ARCH006|src/app/api/calls/route.ts",
-    "ARCH008|src/server/actions/auth.ts",
-    "ARCH008|src/server/actions/chaburas.ts",
-    "ARCH008|src/server/actions/connections.ts",
-    "ARCH008|src/server/actions/matches.ts",
-    "ARCH008|src/server/actions/messages.ts",
-    "ARCH008|src/server/actions/notifications.ts",
-    "ARCH008|src/server/actions/onboarding.ts",
-    "ARCH008|src/server/actions/profile.ts",
-    "ARCH008|src/server/actions/sessions.ts",
-    "ARCH008|src/server/actions/study-profiles.ts"
+    "ARCH008|src/server/actions/matches.ts"
   ]
 }

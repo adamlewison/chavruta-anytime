@@ -4,6 +4,8 @@ import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { notifications, userNotificationSettings } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { setNotificationSettingSchema, markNotificationReadSchema } from "@/domain/schemas/notifications";
+import { firstError } from "@/domain/schemas/common";
 
 export type NotificationType =
   | "connection_request"
@@ -60,6 +62,9 @@ export async function setNotificationSetting(
     const session = await auth();
     if (!session?.user?.id) return { success: false, error: "Not authenticated" };
 
+    const parsed = setNotificationSettingSchema.safeParse({ type, channel, isEnabled });
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
+
     if (isEnabled) {
       // Restore default: delete the row so missing = enabled
       await db()
@@ -107,6 +112,9 @@ export async function markNotificationRead(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = markNotificationReadSchema.safeParse(notificationId);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     await db()
       .update(notifications)
