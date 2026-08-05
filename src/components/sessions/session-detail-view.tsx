@@ -11,7 +11,7 @@ import {
   pauseSession,
   resumeSession,
   cancelSession,
-} from "@/server/actions/sessions";
+} from "@/server/actions/session-lifecycle";
 
 type SessionData = NonNullable<Awaited<ReturnType<typeof getSessionDetail>>>;
 type Occurrences = Awaited<ReturnType<typeof listUpcomingOccurrences>>;

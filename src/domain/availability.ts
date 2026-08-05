@@ -1,3 +1,10 @@
+// architecture-exception: ARCH005 — 8 lines over budget. This is a tight set
+// of ~20 interdependent bit-manipulation primitives (get/set/clear/toggle,
+// AND/OR/NOT, popcount, rotate, dilate, overlap, UTC expansion, presets) all
+// operating on the same 336-bit availability representation. Splitting by
+// arbitrary line count would scatter functions that only make sense read
+// together and would force cross-file imports of the shared TOTAL_BITS/
+// TOTAL_BYTES/SLOTS_PER_DAY constants for no organizational benefit.
 import { DateTime } from "luxon";
 
 // ── Constants ──────────────────────────────────────────────────────────

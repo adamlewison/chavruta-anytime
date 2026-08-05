@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { leaveChabura } from "@/server/actions/chaburas";
+import { leaveChabura } from "@/server/actions/chabura-membership";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 

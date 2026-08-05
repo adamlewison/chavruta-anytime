@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cancelSession } from "@/server/actions/sessions";
+import { cancelSession } from "@/server/actions/session-lifecycle";
 import { describeSchedule } from "@/domain/rrule";
 import { toast } from "sonner";
 

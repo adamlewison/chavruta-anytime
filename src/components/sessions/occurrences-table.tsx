@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cancelOccurrence, restoreOccurrence } from "@/server/actions/sessions";
+import { cancelOccurrence, restoreOccurrence } from "@/server/actions/session-occurrences";
 import { toast } from "sonner";
 
 export type OccurrenceRow = {

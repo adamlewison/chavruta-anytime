@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { listActiveSessions, countFutureOccurrences } from "@/server/queries/sessions";
-import { createOccurrence } from "@/server/actions/sessions";
+import { createOccurrence } from "@/server/actions/session-occurrences";
 import { RRule } from "rrule";
 
 export async function POST(request: NextRequest) {
