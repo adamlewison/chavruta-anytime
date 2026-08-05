@@ -1,9 +1,11 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { notifications, userNotificationSettings } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { setNotificationSettingSchema, markNotificationReadSchema } from "@/domain/schemas/notifications";
+import { firstError } from "@/domain/schemas/common";
 
 export type NotificationType =
   | "connection_request"
@@ -18,6 +20,19 @@ export type NotificationType =
   | "match_found";
 
 export type NotificationChannel = "in_app" | "email" | "push";
+
+/**
+ * Creates a notification for an arbitrary user. Used by system callers (cron
+ * jobs, other actions) that act on behalf of someone other than the signed-in
+ * user, so unlike the rest of this module it does not check auth() itself.
+ */
+export async function createNotification(
+  userId: string,
+  type: NotificationType,
+  payload: Record<string, unknown>,
+) {
+  await db().insert(notifications).values({ userId, type, payload });
+}
 
 // Returns a set of keys "{type}_{channel}" that are explicitly disabled.
 // Missing from the set = enabled (sparse strategy).
@@ -59,6 +74,9 @@ export async function setNotificationSetting(
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, error: "Not authenticated" };
+
+    const parsed = setNotificationSettingSchema.safeParse({ type, channel, isEnabled });
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     if (isEnabled) {
       // Restore default: delete the row so missing = enabled
@@ -107,6 +125,9 @@ export async function markNotificationRead(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = markNotificationReadSchema.safeParse(notificationId);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     await db()
       .update(notifications)

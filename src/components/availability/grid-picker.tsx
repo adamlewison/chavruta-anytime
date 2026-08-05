@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { getBit, setBit, clearBit, createEmptyBitmap } from "@/lib/availability";
+import { getBit, setBit, clearBit, createEmptyBitmap } from "@/domain/availability";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

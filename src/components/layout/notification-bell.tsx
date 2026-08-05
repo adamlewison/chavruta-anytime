@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import type { PollState } from "@/lib/poll";
+import type { PollState } from "@/hooks/use-poll";
 
 export function NotificationBell() {
   // Subscribe to poll cache so we re-render when usePoll calls setQueryData

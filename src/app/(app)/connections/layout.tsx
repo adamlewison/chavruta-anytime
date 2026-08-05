@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { db } from "@/db";
-import { connections } from "@/db/schema";
-import { eq, and, count } from "drizzle-orm";
+import { auth } from "@/server/auth";
+import { getPendingConnectionCount } from "@/server/queries/connections";
 import { ConnectionsNav } from "@/components/connections/connections-nav";
 
 export const metadata: Metadata = {
@@ -23,11 +21,7 @@ export default async function ConnectionsLayout({
 
   let pendingCount = 0;
   try {
-    const [row] = await db()
-      .select({ n: count() })
-      .from(connections)
-      .where(and(eq(connections.addresseeId, userId), eq(connections.status, "pending")));
-    pendingCount = row?.n ?? 0;
+    pendingCount = await getPendingConnectionCount(userId);
   } catch {
     // fall through
   }

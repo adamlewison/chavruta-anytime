@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      # Structural rules from ARCHITECTURE.md. Pre-existing violations are
+      # recorded in scripts/architecture-baseline.json; only NEW ones fail.
+      - name: Architecture
+        run: pnpm check:arch
+
+      # tsc does not catch bundler-level module resolution failures — a stray
+      # runtime import of a type-only .d.ts typechecks clean and fails the
+      # build. Placeholder env vars are enough: the DB client is lazy and every
+      # data-backed route is dynamic, so nothing connects at build time.
+      - name: Build
+        run: pnpm build
+        env:
+          DATABASE_URL: postgresql://user:pass@localhost:5432/placeholder
+          NEXTAUTH_SECRET: ci-placeholder-not-a-real-secret
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000

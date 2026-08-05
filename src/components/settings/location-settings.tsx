@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Clock, Globe } from "lucide-react";
 import { updateProfile } from "@/server/actions/profile";
-import { COUNTRIES, TIMEZONES } from "@/lib/location-data";
+import { COUNTRIES, TIMEZONES } from "@/config/location-data";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -44,20 +44,17 @@ export function LocationSettings({
 }: LocationSettingsProps) {
   const [country, setCountry] = useState(initialCountry);
   const [timezone, setTimezone] = useState(initialTimezone);
-  const [currentTime, setCurrentTime] = useState("");
+  const [, forceTick] = useState(0);
   const [isPending, startTransition] = useTransition();
 
   const isDirty = country !== initialCountry || timezone !== initialTimezone;
 
   useEffect(() => {
-    if (!timezone) return;
-    setCurrentTime(formatTimeInZone(timezone));
-    const interval = setInterval(
-      () => setCurrentTime(formatTimeInZone(timezone)),
-      1000,
-    );
+    const interval = setInterval(() => forceTick((t) => t + 1), 1000);
     return () => clearInterval(interval);
-  }, [timezone]);
+  }, []);
+
+  const currentTime = timezone ? formatTimeInZone(timezone) : "";
 
   function handleSave() {
     startTransition(async () => {

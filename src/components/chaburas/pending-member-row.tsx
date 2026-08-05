@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { approveMember, declineMember } from "@/server/actions/chaburas";
+import { approveMember, declineMember } from "@/server/actions/chabura-membership";
 import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
 

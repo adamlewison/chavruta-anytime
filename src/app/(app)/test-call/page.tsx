@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { db } from "@/db";
-import { sessionOccurrences, learningSessions, calls } from "@/db/schema";
-import { eq, and, gt, or, inArray, asc } from "drizzle-orm";
+import { auth } from "@/server/auth";
 import { DateTime } from "luxon";
-import { getAcceptedConnections, getUserChaburaIds } from "@/lib/server/dashboard";
+import { getAcceptedConnections, getUserChaburaIds } from "@/server/queries/dashboard";
+import { listTestCallOccurrences } from "@/server/queries/calls";
 import { TestCallClient } from "./test-call-client";
 
 export const metadata: Metadata = { title: "Test Call Creation — ChavrutaAnytime" };
@@ -26,34 +24,7 @@ export default async function TestCallPage() {
 
   const connIds = connRows.map((c) => c.id);
 
-  const sessionFilter = or(
-    eq(learningSessions.createdById, userId),
-    connIds.length > 0 ? inArray(learningSessions.chavrutaPairId, connIds) : undefined,
-    chaburaIds.length > 0 ? inArray(learningSessions.chaburaId, chaburaIds) : undefined,
-  );
-
-  const rows = await db()
-    .select({
-      occurrenceId: sessionOccurrences.id,
-      sessionId: sessionOccurrences.sessionId,
-      title: learningSessions.title,
-      startsAt: sessionOccurrences.startsAt,
-      endsAt: sessionOccurrences.endsAt,
-      callId: sessionOccurrences.callId,
-      callStatus: calls.status,
-    })
-    .from(sessionOccurrences)
-    .innerJoin(learningSessions, eq(sessionOccurrences.sessionId, learningSessions.id))
-    .leftJoin(calls, eq(calls.id, sessionOccurrences.callId))
-    .where(
-      and(
-        sessionFilter,
-        eq(sessionOccurrences.status, "scheduled"),
-        gt(sessionOccurrences.startsAt, now.toJSDate()),
-      ),
-    )
-    .orderBy(asc(sessionOccurrences.startsAt))
-    .limit(10);
+  const rows = await listTestCallOccurrences(userId, connIds, chaburaIds, now.toJSDate());
 
   const occurrences = rows.map((r) => ({
     ...r,

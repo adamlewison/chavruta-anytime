@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { db } from "@/db";
-import { calls, sessionOccurrences, learningSessions, chaburaMembers } from "@/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { auth } from "@/server/auth";
+import {
+  getOccurrenceCallId,
+  getOccurrenceForCallStart,
+  getSessionAccessInfo,
+  getActiveCall,
+  getCallById,
+} from "@/server/queries/calls";
+import { getChaburaMembershipRole } from "@/server/queries/chaburas";
+import { upsertActiveCall, claimOccurrenceCall, endCall } from "@/server/actions/calls";
 
 // GET /api/calls?occurrenceId=xxx
 export async function GET(req: NextRequest) {
@@ -16,13 +22,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "occurrenceId is required" }, { status: 400 });
   }
 
-  const database = db();
-
-  const [occurrence] = await database
-    .select({ callId: sessionOccurrences.callId })
-    .from(sessionOccurrences)
-    .where(eq(sessionOccurrences.id, occurrenceId))
-    .limit(1);
+  const occurrence = await getOccurrenceCallId(occurrenceId);
 
   if (!occurrence) {
     return NextResponse.json({ error: "Occurrence not found" }, { status: 404 });
@@ -32,11 +32,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ call: null });
   }
 
-  const [call] = await database
-    .select()
-    .from(calls)
-    .where(and(eq(calls.id, occurrence.callId), eq(calls.status, "active")))
-    .limit(1);
+  const call = await getActiveCall(occurrence.callId);
 
   return NextResponse.json({ call: call ?? null });
 }
@@ -53,28 +49,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "occurrenceId is required" }, { status: 400 });
   }
 
-  const database = db();
-
   // Load occurrence + its parent session to check membership
-  const [occurrence] = await database
-    .select({
-      id: sessionOccurrences.id,
-      callId: sessionOccurrences.callId,
-      sessionId: sessionOccurrences.sessionId,
-    })
-    .from(sessionOccurrences)
-    .where(eq(sessionOccurrences.id, occurrenceId))
-    .limit(1);
+  const occurrence = await getOccurrenceForCallStart(occurrenceId);
 
   if (!occurrence) {
     return NextResponse.json({ error: "Occurrence not found" }, { status: 404 });
   }
 
-  const [ls] = await database
-    .select({ chaburaId: learningSessions.chaburaId, createdById: learningSessions.createdById })
-    .from(learningSessions)
-    .where(eq(learningSessions.id, occurrence.sessionId))
-    .limit(1);
+  const ls = await getSessionAccessInfo(occurrence.sessionId);
 
   if (!ls) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
@@ -83,29 +65,16 @@ export async function POST(req: NextRequest) {
   // Verify access: creator always allowed; chabura sessions check membership
   const isCreator = ls.createdById === session.user.id;
   if (!isCreator && ls.chaburaId) {
-    const [membership] = await database
-      .select({ role: chaburaMembers.role })
-      .from(chaburaMembers)
-      .where(
-        and(
-          eq(chaburaMembers.chaburaId, ls.chaburaId),
-          eq(chaburaMembers.userId, session.user.id),
-        ),
-      )
-      .limit(1);
+    const role = await getChaburaMembershipRole(ls.chaburaId, session.user.id);
 
-    if (!membership || membership.role === "pending") {
+    if (!role || role === "pending") {
       return NextResponse.json({ error: "Not authorised for this session" }, { status: 403 });
     }
   }
 
   // If there's already an active call, return it so the caller can join instead
   if (occurrence.callId) {
-    const [existing] = await database
-      .select()
-      .from(calls)
-      .where(and(eq(calls.id, occurrence.callId), eq(calls.status, "active")))
-      .limit(1);
+    const existing = await getActiveCall(occurrence.callId);
 
     if (existing) return NextResponse.json({ call: existing });
   }
@@ -117,42 +86,23 @@ export async function POST(req: NextRequest) {
   // starting) and the restart path (call ended, session restarts).
   // The conditional UPDATE on session_occurrences (WHERE call_id IS NULL) is then used
   // to claim the call atomically — only one concurrent writer wins.
-  const [upsertedCall] = await database
-    .insert(calls)
-    .values({ roomName, startedBy: session.user.id, status: "active" })
-    .onConflictDoUpdate({
-      target: calls.roomName,
-      set: { status: "active", endedAt: null, startedBy: session.user.id },
-    })
-    .returning();
+  const upsertedCall = await upsertActiveCall(roomName, session.user.id);
 
-  const claimed = await database
-    .update(sessionOccurrences)
-    .set({ callId: upsertedCall.id })
-    .where(and(eq(sessionOccurrences.id, occurrenceId), isNull(sessionOccurrences.callId)))
-    .returning({ callId: sessionOccurrences.callId });
+  const claimed = await claimOccurrenceCall(occurrenceId, upsertedCall.id);
 
   if (claimed.length > 0) {
     return NextResponse.json({ call: upsertedCall });
   }
 
   // Another request won the race — re-fetch and return whatever is now linked.
-  const [reloaded] = await database
-    .select({ callId: sessionOccurrences.callId })
-    .from(sessionOccurrences)
-    .where(eq(sessionOccurrences.id, occurrenceId))
-    .limit(1);
+  const reloaded = await getOccurrenceCallId(occurrenceId);
 
   const winnerId = reloaded?.callId;
   if (!winnerId) {
     return NextResponse.json({ error: "Failed to obtain call" }, { status: 500 });
   }
 
-  const [winnerCall] = await database
-    .select()
-    .from(calls)
-    .where(eq(calls.id, winnerId))
-    .limit(1);
+  const winnerCall = await getCallById(winnerId);
 
   return NextResponse.json({ call: winnerCall ?? null });
 }
@@ -169,10 +119,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "callId is required" }, { status: 400 });
   }
 
-  await db()
-    .update(calls)
-    .set({ status: "ended", endedAt: new Date() })
-    .where(and(eq(calls.id, callId), eq(calls.status, "active")));
+  await endCall(callId);
 
   return NextResponse.json({ success: true });
 }

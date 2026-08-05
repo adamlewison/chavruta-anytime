@@ -24,7 +24,7 @@ import {
   cancelOccurrence,
   rescheduleOccurrence,
   updateOccurrenceStatus,
-} from "@/server/actions/sessions";
+} from "@/server/actions/session-occurrences";
 import { toast } from "sonner";
 import { Loader2, MoreHorizontal } from "lucide-react";
 import { DateTime } from "luxon";

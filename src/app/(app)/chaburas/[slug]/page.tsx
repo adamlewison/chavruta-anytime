@@ -1,17 +1,13 @@
 import type { Metadata } from "next";
 import { redirect, notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { db } from "@/db";
+import { auth } from "@/server/auth";
 import {
-  chaburas,
-  chaburaMembers,
-  users,
-  subjects,
-  learningSessions,
-  conversations,
-  messages,
-} from "@/db/schema";
-import { eq, asc } from "drizzle-orm";
+  getChaburaName,
+  getChaburaDetailBySlug,
+  getChaburaMembers,
+} from "@/server/queries/chaburas";
+import { listChaburaSessions } from "@/server/queries/sessions";
+import { getChaburaConversationId, listConversationMessages } from "@/server/queries/messages";
 import { ChaburaDetailView } from "@/components/chaburas/chabura-detail-view";
 
 export async function generateMetadata({
@@ -20,12 +16,9 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const [row] = await db()
-    .select({ name: chaburas.name })
-    .from(chaburas)
-    .where(eq(chaburas.slug, slug));
+  const name = await getChaburaName(slug);
   return {
-    title: row ? `${row.name}` : "Chabura",
+    title: name ? `${name}` : "Chabura",
   };
 }
 
@@ -90,38 +83,12 @@ export default async function ChaburaDetailPage({
   let membershipState: MembershipState = "none";
 
   try {
-    const [row] = await db()
-      .select({
-        id: chaburas.id,
-        slug: chaburas.slug,
-        name: chaburas.name,
-        description: chaburas.description,
-        image: chaburas.image,
-        isPublic: chaburas.isPublic,
-        roshChaburaId: chaburas.roshChaburaId,
-        subjectName: subjects.name,
-        createdAt: chaburas.createdAt,
-      })
-      .from(chaburas)
-      .leftJoin(learningSessions, eq(learningSessions.chaburaId, chaburas.id))
-      .leftJoin(subjects, eq(subjects.id, learningSessions.subjectId))
-      .where(eq(chaburas.slug, slug));
+    const row = await getChaburaDetailBySlug(slug);
 
     if (!row) notFound();
     chabura = row;
 
-    const memberRows = await db()
-      .select({
-        userId: chaburaMembers.userId,
-        role: chaburaMembers.role,
-        name: users.name,
-        image: users.image,
-        joinedAt: chaburaMembers.joinedAt,
-      })
-      .from(chaburaMembers)
-      .innerJoin(users, eq(users.id, chaburaMembers.userId))
-      .where(eq(chaburaMembers.chaburaId, chabura.id))
-      .orderBy(asc(chaburaMembers.joinedAt));
+    const memberRows = await getChaburaMembers(chabura.id);
 
     members = memberRows;
 
@@ -130,44 +97,17 @@ export default async function ChaburaDetailPage({
 
     // Load sessions for all visitors
     {
-      manageSessions = await db()
-        .select({
-          id: learningSessions.id,
-          title: learningSessions.title,
-          status: learningSessions.status,
-          createdById: learningSessions.createdById,
-          rrule: learningSessions.rrule,
-          dtstart: learningSessions.dtstart,
-          durationMin: learningSessions.durationMin,
-          timezone: learningSessions.timezone,
-        })
-        .from(learningSessions)
-        .where(eq(learningSessions.chaburaId, chabura.id))
-        .orderBy(asc(learningSessions.createdAt));
+      manageSessions = await listChaburaSessions(chabura.id);
     }
 
     // Load conversation for chat tab (only if member/rosh)
     const myRole = members.find((m) => m.userId === currentUserId)?.role;
     if (myRole === "member" || myRole === "rosh") {
-      const [conv] = await db()
-        .select({ id: conversations.id })
-        .from(conversations)
-        .where(eq(conversations.chaburaId, chabura.id));
+      const convId = await getChaburaConversationId(chabura.id);
 
-      if (conv) {
-        conversationId = conv.id;
-        const msgs = await db()
-          .select({
-            id: messages.id,
-            senderId: messages.senderId,
-            senderName: users.name,
-            body: messages.body,
-            createdAt: messages.createdAt,
-          })
-          .from(messages)
-          .leftJoin(users, eq(messages.senderId, users.id))
-          .where(eq(messages.conversationId, conv.id))
-          .orderBy(asc(messages.createdAt));
+      if (convId) {
+        conversationId = convId;
+        const msgs = await listConversationMessages(convId);
 
         chatMessages = msgs.map((m) => ({
           ...m,

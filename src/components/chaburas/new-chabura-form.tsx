@@ -36,7 +36,7 @@ function toSlug(name: string) {
     .replace(/^-|-$/g, "");
 }
 
-type SlugStatus = "idle" | "checking" | "available" | "taken";
+type SlugStatus = "idle" | "available" | "taken";
 
 export function NewChaburaForm({ subjects }: NewChaburaFormProps) {
   const router = useRouter();
@@ -46,19 +46,18 @@ export function NewChaburaForm({ subjects }: NewChaburaFormProps) {
   const [isPublic, setIsPublic] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [slugStatus, setSlugStatus] = useState<SlugStatus>("idle");
+  const [resolvedSlug, setResolvedSlug] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const slug = toSlug(name);
+  const slugValid = slug.length >= 3;
+  const isChecking = slugValid && slug !== resolvedSlug;
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (!slug || slug.length < 3) {
-      setSlugStatus("idle");
-      return;
-    }
+    if (!slugValid) return;
 
-    setSlugStatus("checking");
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/chaburas/check-slug?slug=${encodeURIComponent(slug)}`);
@@ -66,16 +65,18 @@ export function NewChaburaForm({ subjects }: NewChaburaFormProps) {
         setSlugStatus(data.available ? "available" : "taken");
       } catch {
         setSlugStatus("idle");
+      } finally {
+        setResolvedSlug(slug);
       }
     }, 400);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [slug]);
+  }, [slug, slugValid]);
 
   const canSubmit =
-    name.trim().length >= 3 && slugStatus === "available" && !isPending;
+    name.trim().length >= 3 && slugValid && !isChecking && slugStatus === "available" && !isPending;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,18 +118,18 @@ export function NewChaburaForm({ subjects }: NewChaburaFormProps) {
               <div className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2 text-sm">
                 <span className="text-muted-foreground shrink-0">chaburas/</span>
                 <span className="font-mono flex-1">{slug}</span>
-                {slugStatus === "checking" && (
+                {isChecking && (
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
                 )}
-                {slugStatus === "available" && (
+                {!isChecking && slugStatus === "available" && (
                   <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
                 )}
-                {slugStatus === "taken" && (
+                {!isChecking && slugStatus === "taken" && (
                   <XCircle className="h-4 w-4 text-destructive shrink-0" />
                 )}
               </div>
             )}
-            {slugStatus === "taken" && (
+            {slugValid && !isChecking && slugStatus === "taken" && (
               <p className="text-sm text-destructive">That name is already taken.</p>
             )}
           </div>

@@ -1,8 +1,12 @@
 import { redirect, notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { db } from "@/db";
-import { conversations, conversationMembers, messages, users, chaburas } from "@/db/schema";
-import { eq, and, ne, asc } from "drizzle-orm";
+import { auth } from "@/server/auth";
+import {
+  getConversationMembership,
+  getOtherDmMember,
+  listConversationMessages,
+} from "@/server/queries/messages";
+import { getUserHeader } from "@/server/queries/users";
+import { getChaburaNameImageSlug } from "@/server/queries/chaburas";
 import { ChatThread } from "@/components/chat/chat-thread";
 
 export const dynamic = "force-dynamic";
@@ -19,22 +23,23 @@ export default async function ConversationPage({
   const { conversationId } = await params;
   const userId = session.user.id;
 
+  let chatThreadProps: {
+    conversationId: string;
+    currentUserId: string;
+    otherUser: { name: string | null; image: string | null; profileHref: string | null };
+    isChabura: boolean;
+    initialMessages: {
+      id: string;
+      senderId: string;
+      senderName: string | null;
+      body: string;
+      createdAt: string;
+    }[];
+  };
+
   try {
     // Verify membership and get conversation type
-    const [row] = await db()
-      .select({
-        conversationId: conversationMembers.conversationId,
-        convType: conversations.type,
-        chaburaId: conversations.chaburaId,
-      })
-      .from(conversationMembers)
-      .innerJoin(conversations, eq(conversations.id, conversationMembers.conversationId))
-      .where(
-        and(
-          eq(conversationMembers.conversationId, conversationId),
-          eq(conversationMembers.userId, userId),
-        ),
-      );
+    const row = await getConversationMembership(conversationId, userId);
 
     if (!row) notFound();
 
@@ -44,64 +49,39 @@ export default async function ConversationPage({
     let profileHref: string | null = null;
 
     if (row.convType === "dm") {
-      const [otherMember] = await db()
-        .select({ userId: conversationMembers.userId })
-        .from(conversationMembers)
-        .where(
-          and(
-            eq(conversationMembers.conversationId, conversationId),
-            ne(conversationMembers.userId, userId),
-          ),
-        );
+      const otherMemberId = await getOtherDmMember(conversationId, userId);
 
-      if (otherMember) {
-        const [otherUser] = await db()
-          .select({ name: users.name, image: users.image })
-          .from(users)
-          .where(eq(users.id, otherMember.userId));
+      if (otherMemberId) {
+        const otherUser = await getUserHeader(otherMemberId);
         displayName = otherUser?.name ?? null;
         displayImage = otherUser?.image ?? null;
-        profileHref = `/profile/${otherMember.userId}`;
+        profileHref = `/profile/${otherMemberId}`;
       }
     } else if (row.chaburaId) {
-      const [chabura] = await db()
-        .select({ name: chaburas.name, image: chaburas.image, slug: chaburas.slug })
-        .from(chaburas)
-        .where(eq(chaburas.id, row.chaburaId));
+      const chabura = await getChaburaNameImageSlug(row.chaburaId);
       displayName = chabura?.name ?? null;
       displayImage = chabura?.image ?? null;
       profileHref = chabura ? `/chaburas/${chabura.slug}` : null;
     }
 
-    const msgs = await db()
-      .select({
-        id: messages.id,
-        senderId: messages.senderId,
-        senderName: users.name,
-        body: messages.body,
-        createdAt: messages.createdAt,
-      })
-      .from(messages)
-      .leftJoin(users, eq(messages.senderId, users.id))
-      .where(eq(messages.conversationId, conversationId))
-      .orderBy(asc(messages.createdAt));
+    const msgs = await listConversationMessages(conversationId);
 
     const serialised = msgs.map((m) => ({
       ...m,
       createdAt: (m.createdAt ?? new Date()).toISOString(),
     }));
 
-    return (
-      <ChatThread
-        conversationId={conversationId}
-        currentUserId={userId}
-        otherUser={{ name: displayName, image: displayImage, profileHref }}
-        isChabura={row.convType === "chabura"}
-        initialMessages={serialised}
-      />
-    );
+    chatThreadProps = {
+      conversationId,
+      currentUserId: userId,
+      otherUser: { name: displayName, image: displayImage, profileHref },
+      isChabura: row.convType === "chabura",
+      initialMessages: serialised,
+    };
   } catch (err) {
     console.error("Conversation load error:", err);
     notFound();
   }
+
+  return <ChatThread {...chatThreadProps} />;
 }

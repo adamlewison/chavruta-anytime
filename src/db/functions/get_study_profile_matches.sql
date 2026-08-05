@@ -1,4 +1,23 @@
--- Custom SQL migration file, put your code below! --
+-- get_study_profile_matches — chavruta match scoring.
+--
+-- This is the ONE live implementation of match scoring. A TypeScript version
+-- (lib/matching.ts) previously existed with different weights and was deleted;
+-- do not reintroduce one. See ARCHITECTURE.md §8.
+--
+-- Callers:
+--   src/server/actions/matches.ts  → getStudyMatches, getFullStudyMatches,
+--                                    getStudyMatchesForCurrentUser
+--   src/app/api/matches/route.ts   (via the above)
+--
+-- Args:    target_user_id — the user to find partners for
+--          p_limit        — max rows returned (default 50)
+-- Returns: candidate profile columns plus match_score NUMERIC and
+--          connection_status TEXT.
+--
+-- Hard filters: same gender, ≥1 shared language, ≥1 shared subject, onboarded,
+-- not self, not already connected/blocked.
+--
+-- Apply with `pnpm db:functions`. CREATE OR REPLACE — safe to re-run.
 
 CREATE OR REPLACE FUNCTION get_study_profile_matches(target_user_id UUID, p_limit INT DEFAULT 50)
 RETURNS TABLE (

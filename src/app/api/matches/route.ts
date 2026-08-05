@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getStudyMatchesForCurrentUser } from "@/server/actions/matches";
+import { getStudyMatchesForCurrentUser } from "@/server/queries/matches";
 
 /**
  * GET /api/matches

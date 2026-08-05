@@ -1,19 +1,17 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { db } from "@/db";
-import { subjects, users, chaburas, connections } from "@/db/schema";
-import { asc, eq, or, and } from "drizzle-orm";
+import { auth } from "@/server/auth";
+import { listSubjectSlugs } from "@/server/queries/subjects";
+import { getUserTimezone, getUserHeader } from "@/server/queries/users";
+import { getChaburaContextInfo } from "@/server/queries/chaburas";
+import { getConnectionForUser } from "@/server/queries/connections";
 import { NewSessionForm } from "./new-session-form";
+import type { SessionContext } from "./types";
 
 export const metadata: Metadata = {
   title: "Create Session",
 };
-
-export type SessionContext =
-  | { type: "chabura"; id: string; name: string; image: string | null; slug: string }
-  | { type: "chavruta"; connectionId: string; partnerId: string; name: string; image: string | null };
 
 export default async function NewSessionPage({
   searchParams,
@@ -28,51 +26,23 @@ export default async function NewSessionPage({
   const chaburaId = typeof params.chaburaId === "string" ? params.chaburaId : undefined;
   const connectionId = typeof params.with === "string" ? params.with : undefined;
 
-  const [allSubjects, userRow, sessionContext] = await Promise.all([
-    db()
-      .select({ slug: subjects.slug, name: subjects.name })
-      .from(subjects)
-      .orderBy(asc(subjects.sortOrder), asc(subjects.name)),
+  const [allSubjects, userTimezone, sessionContext] = await Promise.all([
+    listSubjectSlugs(),
 
-    db()
-      .select({ timezone: users.timezone })
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .then((r) => r[0]),
+    getUserTimezone(session.user.id),
 
     (async (): Promise<SessionContext | null> => {
       if (chaburaId) {
-        const [row] = await db()
-          .select({ id: chaburas.id, name: chaburas.name, image: chaburas.image, slug: chaburas.slug })
-          .from(chaburas)
-          .where(eq(chaburas.id, chaburaId));
+        const row = await getChaburaContextInfo(chaburaId);
         if (!row) return null;
         return { type: "chabura", ...row };
       }
       if (connectionId) {
-        const [conn] = await db()
-          .select({
-            id: connections.id,
-            requesterId: connections.requesterId,
-            addresseeId: connections.addresseeId,
-          })
-          .from(connections)
-          .where(
-            and(
-              eq(connections.id, connectionId),
-              or(
-                eq(connections.requesterId, session.user.id),
-                eq(connections.addresseeId, session.user.id),
-              ),
-            ),
-          );
+        const conn = await getConnectionForUser(connectionId, session.user.id);
         if (!conn) return null;
         const partnerId =
           conn.requesterId === session.user.id ? conn.addresseeId : conn.requesterId;
-        const [partner] = await db()
-          .select({ name: users.name, image: users.image })
-          .from(users)
-          .where(eq(users.id, partnerId));
+        const partner = await getUserHeader(partnerId);
         if (!partner) return null;
         return {
           type: "chavruta",
@@ -96,7 +66,7 @@ export default async function NewSessionPage({
     >
       <NewSessionForm
         subjects={allSubjects}
-        userTimezone={userRow?.timezone ?? "UTC"}
+        userTimezone={userTimezone ?? "UTC"}
         sessionContext={sessionContext}
       />
     </Suspense>

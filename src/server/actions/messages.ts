@@ -1,9 +1,11 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { messages, conversationMembers, notifications, users } from "@/db/schema";
 import { eq, and, ne, sql } from "drizzle-orm";
+import { sendMessageSchema, markConversationReadSchema } from "@/domain/schemas/messages";
+import { firstError } from "@/domain/schemas/common";
 
 export async function sendMessage(
   conversationId: string,
@@ -14,6 +16,9 @@ export async function sendMessage(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = sendMessageSchema.safeParse({ conversationId, body });
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const userId = session.user.id;
 
@@ -114,6 +119,8 @@ export async function markConversationRead(
   try {
     const session = await auth();
     if (!session?.user?.id) return;
+
+    if (!markConversationReadSchema.safeParse(conversationId).success) return;
 
     const userId = session.user.id;
 

@@ -1,0 +1,42 @@
+name: House rules
+
+# The judgement half of architecture enforcement. The deterministic check runs
+# on every PR in ci.yml; this pass reviews what a script cannot decide — name
+# quality, conceptual placement, abstraction altitude, and doc/tree drift.
+# See .claude/skills/house-rules/SKILL.md and ARCHITECTURE.md.
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Mondays 09:00 UTC
+  workflow_dispatch:
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # skill inspects baseline history
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Architecture review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Run the house-rules skill against this repository and post the
+            report as a GitHub issue titled "House rules — <today's date>".
+            Open a PR only for fixes the skill classifies as unambiguous and
+            mechanical. If there are no findings, do not open an issue.

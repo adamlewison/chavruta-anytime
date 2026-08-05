@@ -1,6 +1,6 @@
 "use client";
 
-import { getBit } from "@/lib/availability";
+import { getBit } from "@/domain/availability";
 import { cn } from "@/lib/utils";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

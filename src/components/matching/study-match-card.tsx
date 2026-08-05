@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserPlus, Check, BookOpen, UserCheck, Inbox, Sparkles } from "lucide-react";
-import type { FullStudyMatchResult } from "@/server/actions/matches";
+import type { FullStudyMatchResult } from "@/server/queries/matches";
 
 function scoreColor(score: number): string {
   if (score >= 75) return "from-emerald-400 to-green-500";

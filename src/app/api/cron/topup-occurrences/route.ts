@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { db } from "@/db";
-import { learningSessions, sessionOccurrences } from "@/db/schema";
-import { eq, and, gt, sql } from "drizzle-orm";
+import { listActiveSessions, countFutureOccurrences } from "@/server/queries/sessions";
+import { createOccurrence } from "@/server/actions/session-occurrences";
 import { RRule } from "rrule";
 
 export async function POST(request: NextRequest) {
@@ -12,31 +11,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const database = db();
-
   // Find active sessions with < 10 future occurrences
   const now = new Date();
-  const activeSessions = await database
-    .select()
-    .from(learningSessions)
-    .where(eq(learningSessions.status, "active"));
+  const activeSessions = await listActiveSessions();
 
   let created = 0;
 
   for (const session of activeSessions) {
     // Count future occurrences
-    const futureCount = await database
-      .select({ count: sql<number>`count(*)` })
-      .from(sessionOccurrences)
-      .where(
-        and(
-          eq(sessionOccurrences.sessionId, session.id),
-          eq(sessionOccurrences.status, "scheduled"),
-          gt(sessionOccurrences.startsAt, now)
-        )
-      );
-
-    const count = Number(futureCount[0]?.count ?? 0);
+    const count = await countFutureOccurrences(session.id, now);
     if (count >= 10) continue;
 
     // Expand RRULE forward to get 12 future occurrences
@@ -61,15 +44,7 @@ export async function POST(request: NextRequest) {
           startsAt.getTime() + (session.durationMin ?? 60) * 60 * 1000
         );
 
-        await database
-          .insert(sessionOccurrences)
-          .values({
-            sessionId: session.id,
-            startsAt,
-            endsAt,
-            status: "scheduled",
-          })
-          .onConflictDoNothing();
+        await createOccurrence(session.id, startsAt, endsAt);
         created++;
       }
     } catch {

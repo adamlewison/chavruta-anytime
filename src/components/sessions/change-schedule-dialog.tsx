@@ -14,7 +14,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { RRuleBuilder } from "@/components/sessions/rrule-builder";
-import { updateSessionSchedule } from "@/server/actions/sessions";
+import { updateSessionSchedule } from "@/server/actions/session-lifecycle";
 import { toast } from "sonner";
 
 interface ChangeScheduleDialogProps {

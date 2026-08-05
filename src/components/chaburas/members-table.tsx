@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { declineMember } from "@/server/actions/chaburas";
+import { declineMember } from "@/server/actions/chabura-membership";
 
 export type MemberRow = {
   userId: string;

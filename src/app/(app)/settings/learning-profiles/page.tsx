@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { auth } from "@/server/auth";
+import { getUserTimezone } from "@/server/queries/users";
 import { getStudyProfiles } from "@/server/actions/study-profiles";
 import { LearningProfiles } from "@/components/settings/learning-profiles";
 
@@ -15,15 +13,12 @@ export default async function LearningProfilesPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/sign-in");
 
-  const [[userRow], { profiles, subjects }] = await Promise.all([
-    db()
-      .select({ timezone: users.timezone })
-      .from(users)
-      .where(eq(users.id, session.user.id)),
+  const [userTimezone, { profiles, subjects }] = await Promise.all([
+    getUserTimezone(session.user.id),
     getStudyProfiles(),
   ]);
 
-  const timezone = userRow?.timezone ?? "UTC";
+  const timezone = userTimezone ?? "UTC";
 
   return <LearningProfiles profiles={profiles} subjects={subjects} timezone={timezone} />;
 }

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { joinChabura } from "@/server/actions/chaburas";
+import { joinChabura } from "@/server/actions/chabura-membership";
 import { Button } from "@/components/ui/button";
 import { UserPlus, Check, Clock } from "lucide-react";
 

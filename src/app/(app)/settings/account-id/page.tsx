@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { redirect } from "next/navigation";
 import { Label } from "@/components/ui/label";
 

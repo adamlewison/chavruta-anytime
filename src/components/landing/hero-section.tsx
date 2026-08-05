@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
-import logoNameSrc from "../../../public/ca-logo-name.png";
+import logoNameSrc from "~public/ca-logo-name.png";
 
 /* ── Floating orb background ─────────────────────────────────── */
 function FloatingOrbs() {

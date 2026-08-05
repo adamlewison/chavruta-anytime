@@ -1,5 +1,7 @@
 # ChavrutaAnytime — Build Spec & Agent Prompt
 
+> **Historical document.** This was the original build spec used to scaffold the app. Most of it (schema, algorithms, page map, cron jobs) still reflects how the app works — but the brand/visual design in §3 below has since been superseded. For current design decisions, use [`chavruta-anytime-web-app-design-guidelines.md`](./chavruta-anytime-web-app-design-guidelines.md), which matches what's actually implemented in `src/styles/globals.css`.
+
 > You are building **ChavrutaAnytime**, a platform that helps Jewish learners find learning partners (chavrutas) and groups (chaburas) for Torah study, schedule recurring sessions, and meet over video — anytime.
 >
 > This document is the complete spec. Treat every section as a requirement, not a suggestion. When something is ambiguous, choose the option that produces the most polished, mobile-first, opinionated product.
@@ -20,11 +22,14 @@ The product wins when a user signs up Sunday night and is mid-shiur with a real 
 
 ---
 
-## 2. Tech Stack (locked)
+## 2. Tech Stack
+
+> **As-built, corrected from the original spec.** Rows marked ⚠ differ from what was
+> originally planned. The README table is the authoritative copy.
 
 | Layer        | Choice                                                                              |
 | ------------ | ----------------------------------------------------------------------------------- |
-| Framework    | **Next.js 15** (App Router, RSC, Server Actions)                                    |
+| Framework    | ⚠ **Next.js 16** (App Router, RSC, Server Actions) — spec said 15                   |
 | Database     | **Neon** Postgres (serverless)                                                      |
 | ORM          | **Drizzle ORM** + drizzle-kit migrations                                            |
 | Auth         | **NextAuth v5 (Auth.js)** — Google OAuth + Email passcode (Resend)                  |
@@ -33,103 +38,29 @@ The product wins when a user signs up Sunday night and is mid-shiur with a real 
 | Styling      | **Tailwind CSS** with custom palette                                                |
 | Animations   | **framer-motion** + Tailwind transitions                                            |
 | Toasts       | **sonner**                                                                          |
-| Forms        | **react-hook-form** + **zod**                                                       |
+| Validation   | ⚠ **zod** — `react-hook-form` was specified but is unused                           |
 | Dates/TZ     | **luxon** (always; never raw `Date` for TZ math)                                    |
 | Recurrence   | **rrule**                                                                           |
 | Live updates | **Polling** (5s) — TanStack Query + ETag/304, paused on hidden tabs (no websockets) |
-| Email        | **Resend** + **react-email**                                                        |
-| Storage      | **UploadThing** (profile pics, chabura pics, subject pics)                          |
-| Video        | **Jitsi Meet** (free, no auth, no API keys)                                         |
-| Analytics    | **PostHog**                                                                         |
-| Errors       | **Sentry**                                                                          |
+| Email        | ⚠ **Resend** — `react-email` was specified but is unused                            |
+| Storage      | ⚠ **Vercel Blob** (`@vercel/blob`) — spec said UploadThing                          |
+| Video        | ⚠ **LiveKit** — spec said Jitsi Meet (see §10)                                      |
+| Analytics    | ⚠ **PostHog** — declared, not wired                                                 |
+| Errors       | ⚠ **Sentry** — declared, not wired                                                  |
 
-Node 20. pnpm. TypeScript strict. ESLint + Prettier. Husky pre-commit.
+⚠ Node 22 (`.nvmrc`), not 20. pnpm. TypeScript strict. ESLint. Husky pre-commit.
 
 ---
 
 ## 3. Brand & Design System
 
-### 3.1 Logo & Wordmark
+See [`chavruta-anytime-web-app-design-guidelines.md`](./chavruta-anytime-web-app-design-guidelines.md) for the current colors, typography, and component conventions — that file is the source of truth and matches `src/styles/globals.css`.
 
-**`chavruta`** in deep blue, **`anytime`** in warm orange. One word, no space, mixed-case styling: **chavruta**anytime.
+A few product-level UX rules from the original spec still apply and aren't restated there:
 
-Use Fraunces (serif, semibold) for the wordmark — gives it a Torah-scholarly feel without being kitsch. Pair with Inter for UI text and Frank Ruhl Libre for any Hebrew.
-
-### 3.2 Color Palette
-
-Define in `tailwind.config.ts` and as CSS variables in `globals.css` for both light and dark.
-
-```
-Brand
-  ink         #0E2A47   (deep blue — "chavruta")
-  ember       #E8703A   (warm orange — "anytime")
-  parchment   #FBF6EC   (warm off-white background)
-  scroll      #F2E8D5   (slightly darker parchment, card surface)
-
-Neutrals (warm, not slate)
-  stone-50  #FAF7F2
-  stone-100 #F1ECE2
-  stone-200 #E0D8C8
-  stone-400 #9C9281
-  stone-600 #5A5346
-  stone-800 #2A2620
-  stone-900 #161310
-
-Semantic
-  success #2F7D5B   (olive-green)
-  warning #C68A2E   (amber)
-  danger  #B5371F   (sienna)
-
-Dark mode
-  bg      #161310
-  surface #211C16
-  ink     #6FA8E5   (lighter blue for legibility on dark)
-  ember   #F08A52
-  text    #F1ECE2
-```
-
-The warm parchment background is the signature — no white app-shell. It evokes a beis medrash without being a costume.
-
-### 3.3 Typography Scale
-
-```
-display  Fraunces 600 — page heroes
-h1       Inter 700 — 28/32 mobile, 36/40 desktop
-h2       Inter 600 — 22/28
-h3       Inter 600 — 18/24
-body     Inter 400 — 16/24
-small    Inter 400 — 14/20
-mono     JetBrains Mono — for codes/IDs only
-hebrew   Frank Ruhl Libre — Hebrew text, slightly larger size for parity
-```
-
-### 3.4 Component Voice
-
-- Rounded corners: `rounded-xl` default, `rounded-2xl` for cards
-- Borders: 1px stone-200 in light, stone-800 in dark — never pure black
-- Shadows: warm (`shadow-[0_2px_8px_rgba(46,32,16,0.06)]`), never cool
-- Buttons: primary = ink bg / parchment text; accent = ember bg; ghost = no border
-- Empty states: illustrated with a simple Hebrew letter mark (ב, ח, etc.) at low opacity
-
-### 3.5 Mobile-First Rules (non-negotiable)
-
-- **Every page must work at 375px wide with no horizontal scroll.** Test in dev tools at iPhone SE width.
-- Bottom tab bar on mobile: Home, Find, Chaburas, Messages, Profile
-- Tap targets ≥ 44px
-- Sheets/drawers (shadcn `Sheet`) for secondary actions on mobile, dialogs on desktop
-- No fixed-pixel widths; use `w-full max-w-*` containers
-
-### 3.6 Motion
-
-- Page transitions: framer-motion fade + 4px slide, 180ms
-- Connection accepted: confetti burst (`canvas-confetti`) + a Hebrew ב flash for 700ms — _the_ moment of delight
-- Sending message: optimistic, with subtle scale-in
-- Sonner toasts on every async action — success, error, _no silent success_
-
-### 3.7 Empty & Loading States
-
-- Loading: shadcn `Skeleton` matching final layout. Never spinners for content.
-- Empty states are first-class screens: heading, supporting line, primary CTA, and a soft Hebrew letter watermark. Examples below in each page spec.
+- **Mobile-first, non-negotiable**: every page must work at 375px wide with no horizontal scroll. Bottom tab bar on mobile: Home, Find, Chaburas, Messages, Profile. Tap targets ≥ 44px. Sheets/drawers (shadcn `Sheet`) for secondary actions on mobile, dialogs on desktop.
+- **Motion**: page transitions via framer-motion (fade + 4px slide, 180ms). Connection accepted → confetti burst (`canvas-confetti`). Sonner toasts on every async action — success and error, no silent success.
+- **Empty & loading states**: shadcn `Skeleton` matching the final layout, never bare spinners. Empty states are first-class: heading, supporting line, primary CTA.
 
 ---
 
@@ -666,47 +597,18 @@ Idempotent. Logs to a `cron_runs` table or PostHog.
 
 ---
 
-## 10. Video Meetings (Jitsi)
+## 10. Video Meetings
 
-We use **Jitsi Meet** — the free public instance at `meet.jit.si`. No API, no auth, no SDK keys, no quotas. It just works.
+> **Superseded.** This section originally specified Jitsi Meet. The app ships on
+> **LiveKit** (`livekit-client`, `livekit-server-sdk`, `@livekit/components-react`)
+> with server-minted access tokens from `/api/livekit/token`. The rationale below
+> for avoiding Google Meet still holds; the Jitsi implementation detail does not.
+> Env vars: `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `NEXT_PUBLIC_LIVEKIT_URL`.
 
-### 10.1 Why not Google Meet
+The schema impact is unchanged: a session stores a room identifier, every
+occurrence in the series reuses it, and swapping providers touches only the room
+URL generator.
 
-Google Meet has no public REST API to mint a standalone meeting URL — the supported flow is via the Calendar API, which forces the session creator to be Google-authenticated and adds a heavy permissions surface. Since we want email-passcode users to have full feature parity (and we don't want to manage Calendar OAuth refresh tokens, scope upgrades, and quota), we skip Google Meet entirely.
-
-### 10.2 Room generation
-
-On session create, generate a stable, hard-to-guess room slug:
-
-```ts
-const slug = `ChavrutaAnytime-${nanoid(16)}`; // e.g. ChavrutaAnytime-V1StGXR8_Z5jdHi6
-const meetUrl = `https://meet.jit.si/${slug}`;
-```
-
-Persist on `learning_sessions.meetUrl`. Every occurrence in the series reuses the same URL — Jitsi rooms are ephemeral; the same slug just works whenever someone joins.
-
-For _one-off_ occurrences cancelled and replaced, no action — the old URL simply goes unused. For brand-new ad-hoc sessions, generate a fresh slug.
-
-### 10.3 Embedding vs. opening externally
-
-- **Default**: open `meetUrl` in a new tab. On mobile, this deep-links to the Jitsi Meet app if installed (handled by the `meet.jit.si` site itself).
-- **Optional embed**: on the occurrence detail page during the active window, optionally render the **Jitsi IFrame API** (`<iframe src="https://meet.jit.si/{slug}#config.prejoinPageEnabled=false&userInfo.displayName={name}">`) so the user can join without leaving the app. Tested at 375px width — collapses to full-screen modal on mobile.
-
-### 10.4 Pre-fill display name
-
-Pass `?userInfo.displayName=` URL param so the user appears as their real name to their chavruta. No login prompt inside Jitsi.
-
-### 10.5 In-app meeting UX
-
-- Dashboard "Next session" card: 24h before → muted "Tomorrow at 9pm". 10 min before → ember **Join Meeting** button. During → big "In session — Join now." After `endsAt+30` → "Meeting ended — add notes?"
-- Occurrence detail page mirrors the same window logic
-- Both parties see the same room URL, so whoever clicks first lands and waits
-
-### 10.6 Future swap
-
-If we ever want a paid/branded experience, we can swap to **Daily.co** or **Whereby Embedded** by changing only the `meetUrl` generator. Nothing else in the schema changes.
-
----
 
 ## 11. Notifications
 
@@ -952,74 +854,33 @@ All mutating routes use **Server Actions** where called from RSC, and the API ro
 
 ## 15. Environment Variables
 
+See the README for the authoritative list — it is kept in sync with the vars the
+code actually reads. Notably `UPLOADTHING_*` and `DIRECT_URL` from the original
+spec are no longer used, and the LiveKit and Vercel Blob vars were added.
+
 ```
-DATABASE_URL                 # Neon
-DIRECT_URL                   # for migrations (non-pooled)
-NEXTAUTH_URL
+DATABASE_URL
 NEXTAUTH_SECRET
 GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
 RESEND_API_KEY
-RESEND_FROM=hello@chavrutaanytime.com
-UPLOADTHING_TOKEN            # primary token for v7+ SDK
-UPLOADTHING_SECRET           # if older SDK pinned
+RESEND_FROM
+LIVEKIT_API_KEY
+LIVEKIT_API_SECRET
+NEXT_PUBLIC_LIVEKIT_URL
+NEXT_PUBLIC_SITE_URL
+BLOB_READ_WRITE_TOKEN
 CRON_SECRET
-SENTRY_DSN
-NEXT_PUBLIC_POSTHOG_KEY
 ```
 
 ---
 
 ## 16. Project Structure
 
-```
-src/
-  app/
-    (marketing)/page.tsx
-    (auth)/sign-in/page.tsx
-    (auth)/verify/page.tsx
-    (app)/
-      layout.tsx                  // mobile tab bar + header
-      dashboard/page.tsx
-      find/page.tsx
-      find/[userId]/page.tsx
-      connections/page.tsx
-      chaburas/page.tsx
-      chaburas/new/page.tsx
-      chaburas/[slug]/...
-      messages/...
-      sessions/...
-      profile/...
-      settings/page.tsx
-      notifications/page.tsx
-    api/...
-  components/
-    ui/                           // shadcn
-    brand/                        // Logo, WordMark, BeisLetter (watermark)
-    availability/                 // GridPicker, HeatMap, presets
-    sessions/                     // RRuleBuilder, OccurrenceCard, JoinButton
-    matching/                     // MatchCard, FilterSheet
-    chat/                         // Thread, MessageBubble, Composer
-    layout/                       // BottomTabs, AppHeader, EmptyState
-  db/
-    schema/
-    migrations/
-    index.ts
-  lib/
-    auth.ts
-    poll.ts                       // usePoll() hook + ETag helpers
-    jitsi.ts                      // generateRoomUrl(), buildPrejoinUrl()
-    uploadthing.ts                // ut router definitions + client helpers
-    availability.ts
-    rrule.ts
-    matching.ts
-    email/templates/
-  server/
-    actions/
-    services/
-  styles/
-    globals.css
-```
+> **Superseded by [`ARCHITECTURE.md`](./ARCHITECTURE.md)**, which is the enforced
+> standard. The tree originally sketched here was never fully built (notably
+> `server/services/`), and `ARCHITECTURE.md` reflects both what exists and what
+> the checker enforces.
 
 ---
 

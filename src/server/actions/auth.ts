@@ -2,9 +2,10 @@
 
 import { db } from "@/db";
 import { verificationTokens } from "@/db/schema";
-import { resend, RESEND_FROM } from "@/lib/email";
+import { resend, RESEND_FROM } from "@/server/email";
 import { eq, and, gt } from "drizzle-orm";
-import { generateCode, encodeToken } from "@/lib/token";
+import { generateCode, encodeToken } from "@/domain/token";
+import { sendPasscodeSchema } from "@/domain/schemas/auth";
 
 const CODE_TTL_MINUTES = 10;
 const MAX_SENDS_PER_HOUR = 5;
@@ -13,11 +14,11 @@ export async function sendPasscode(
   email: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const normalized = email.trim().toLowerCase();
-
-    if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    const parsed = sendPasscodeSchema.safeParse(email.trim().toLowerCase());
+    if (!parsed.success) {
       return { success: false, error: "Invalid email address" };
     }
+    const normalized = parsed.data;
 
     const database = db();
     const now = new Date();
@@ -50,7 +51,7 @@ export async function sendPasscode(
       expires,
     });
 
-    await resend.emails.send({
+    await resend().emails.send({
       from: RESEND_FROM,
       to: normalized,
       subject: "Your ChavrutaAnytime sign-in code",

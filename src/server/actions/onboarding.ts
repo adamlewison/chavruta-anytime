@@ -1,9 +1,11 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { users, userSubjects, subjects } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
+import { completeOnboardingSchema } from "@/domain/schemas/onboarding";
+import { firstError } from "@/domain/schemas/common";
 
 export async function completeOnboarding(data: {
   name: string;
@@ -22,6 +24,9 @@ export async function completeOnboarding(data: {
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = completeOnboardingSchema.safeParse(data);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const userId = session.user.id;
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import {
   connections,
@@ -11,6 +11,8 @@ import {
 } from "@/db/schema";
 import { eq, and, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { sendConnectionRequestSchema, respondToConnectionSchema, removeConnectionSchema } from "@/domain/schemas/connections";
+import { firstError } from "@/domain/schemas/common";
 
 export async function getMyChavrutas(limit = 6): Promise<
   Array<{ userId: string; name: string | null; image: string | null }>
@@ -48,6 +50,9 @@ export async function sendConnectionRequest(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = sendConnectionRequestSchema.safeParse(addresseeId);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const userId = session.user.id;
 
@@ -113,6 +118,9 @@ export async function respondToConnection(
       return { success: false, error: "Not authenticated" };
     }
 
+    const parsed = respondToConnectionSchema.safeParse({ connectionId, status });
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
+
     const userId = session.user.id;
 
     // Get the connection
@@ -176,6 +184,9 @@ export async function removeConnection(
     if (!session?.user?.id) {
       return { success: false, error: "Not authenticated" };
     }
+
+    const parsed = removeConnectionSchema.safeParse(connectionId);
+    if (!parsed.success) return { success: false, error: firstError(parsed.error) };
 
     const userId = session.user.id;
 

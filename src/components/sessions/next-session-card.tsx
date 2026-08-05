@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LiveKitJoinButton } from "@/components/sessions/livekit-join-button";
 import { SessionUnderwayTicker } from "@/components/sessions/session-underway-ticker";
-import type { DashboardSession } from "@/lib/server/dashboard";
+import type { DashboardSession } from "@/server/queries/dashboard";
 
 export type NextSessionCardSize = "small" | "medium" | "large";
 

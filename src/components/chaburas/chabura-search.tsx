@@ -10,11 +10,13 @@ export function ChaburaSearch({ initialQuery }: { initialQuery: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [value, setValue] = useState(initialQuery);
+  const [prevInitialQuery, setPrevInitialQuery] = useState(initialQuery);
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
+  if (initialQuery !== prevInitialQuery) {
+    setPrevInitialQuery(initialQuery);
     setValue(initialQuery);
-  }, [initialQuery]);
+  }
 
   useEffect(() => {
     const handler = setTimeout(() => {

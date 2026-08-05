@@ -1,9 +1,8 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { db } from "@/db";
-import { chaburas, chaburaMembers } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { auth } from "@/server/auth";
+import { getChaburaMembershipRole } from "@/server/queries/chaburas";
+import { updateChaburaImage } from "@/server/actions/chaburas";
 
 export async function POST(request: Request): Promise<NextResponse> {
   const session = await auth();
@@ -23,17 +22,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   // Verify the user is rosh of this chabura
-  const [membership] = await db()
-    .select({ role: chaburaMembers.role })
-    .from(chaburaMembers)
-    .where(
-      and(
-        eq(chaburaMembers.chaburaId, chaburaId),
-        eq(chaburaMembers.userId, session.user.id),
-      ),
-    );
+  const role = await getChaburaMembershipRole(chaburaId, session.user.id);
 
-  if (!membership || membership.role !== "rosh") {
+  if (role !== "rosh") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -41,10 +32,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     access: "public",
   });
 
-  await db()
-    .update(chaburas)
-    .set({ image: blob.url, updatedAt: new Date() })
-    .where(eq(chaburas.id, chaburaId));
+  await updateChaburaImage(chaburaId, blob.url);
 
   return NextResponse.json(blob);
 }

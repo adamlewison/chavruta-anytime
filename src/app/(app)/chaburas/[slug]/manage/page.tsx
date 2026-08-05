@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { auth } from "@/lib/auth";
-import { db } from "@/db";
-import { chaburas, chaburaMembers } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { auth } from "@/server/auth";
+import { getChaburaForManage, getChaburaMembershipRole } from "@/server/queries/chaburas";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { ManageChaburaForm } from "@/components/chaburas/manage-chabura-form";
@@ -33,32 +31,14 @@ export default async function ManageChaburaPage({
   } | null = null;
 
   try {
-    const [row] = await db()
-      .select({
-        id: chaburas.id,
-        slug: chaburas.slug,
-        name: chaburas.name,
-        description: chaburas.description,
-        image: chaburas.image,
-        isPublic: chaburas.isPublic,
-      })
-      .from(chaburas)
-      .where(eq(chaburas.slug, slug));
+    const row = await getChaburaForManage(slug);
 
     if (!row) notFound();
 
     // Verify rosh
-    const [membership] = await db()
-      .select({ role: chaburaMembers.role })
-      .from(chaburaMembers)
-      .where(
-        and(
-          eq(chaburaMembers.chaburaId, row.id),
-          eq(chaburaMembers.userId, currentUserId),
-        ),
-      );
+    const role = await getChaburaMembershipRole(row.id, currentUserId);
 
-    if (!membership || membership.role !== "rosh") {
+    if (role !== "rosh") {
       redirect(`/chaburas/${slug}`);
     }
 

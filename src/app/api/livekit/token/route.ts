@@ -1,6 +1,6 @@
 import { AccessToken } from "livekit-server-sdk";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
