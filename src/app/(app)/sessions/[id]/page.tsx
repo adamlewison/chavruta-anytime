@@ -19,7 +19,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { OccurrencesTable } from "@/components/sessions/occurrences-table";
 import { Calendar, Clock, ChevronLeft, Pause, Play, X } from "lucide-react";
 import { ChangeScheduleDialog } from "@/components/sessions/change-schedule-dialog";
-import { describeSchedule } from "@/lib/rrule";
+import { describeSchedule } from "@/domain/rrule";
 import {
   pauseSession,
   resumeSession,

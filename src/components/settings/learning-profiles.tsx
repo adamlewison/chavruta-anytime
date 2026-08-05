@@ -24,7 +24,7 @@ import {
   expandToUtcWeek,
   getNextSundayUtc,
   popcountHours,
-} from "@/lib/availability";
+} from "@/domain/availability";
 import {
   createStudyProfile,
   updateStudyProfile,

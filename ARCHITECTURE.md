@@ -30,6 +30,8 @@ src/
   db/             Drizzle client, schema, migrations. Owns the DB connection.
     schema/         Table definitions, one file per domain area
     migrations/     Generated SQL — never hand-edited
+    functions/      Hand-written SQL functions. See §8 — this is real business
+                    logic and is held to the same standard as TypeScript.
   hooks/          ALL React hooks. No exceptions.
   config/         Static reference data and env access (languages, timezones)
   lib/            Cross-cutting leaf utilities only. See §6 — this is not a catch-all.
@@ -154,3 +156,33 @@ The checker honours the annotation, records it, and reports the total count. A r
 **For pre-existing violations**, they are already in `scripts/architecture-baseline.json`. That file only ever shrinks — `pnpm check:arch` fails if a new violation appears, and the baseline is regenerated (smaller) after each cleanup batch.
 
 **If a rule is wrong**, change this document and the checker in the same PR. Do not quietly deviate, and do not add to the baseline to dodge a rule.
+
+---
+
+## 8. Business logic in SQL
+
+Some logic lives in Postgres functions under `src/db/functions/*.sql`, applied with
+`pnpm db:functions`. Match scoring is the current example: `get_study_profile_matches`
+does subject, language, availability and proximity scoring entirely in SQL.
+
+This is a legitimate third home for business logic — it is far cheaper to score
+candidates next to the data than to pull every user into Node. But it is invisible to
+the type system, the linter, and the test suite, so it carries extra obligations:
+
+1. **One implementation per algorithm.** Never keep a TypeScript version of logic that
+   ships in SQL. This repo previously carried both a `lib/matching.ts` and the SQL
+   scorer with *different weights*, plus a dead `actions/match.ts` calling the stale
+   one — three artifacts, two behaviours, one live path. Delete the loser.
+2. **Every function file names its callers.** A header comment listing which
+   `server/queries/` or `server/actions/` modules invoke it, because nothing else
+   links them.
+3. **Functions are `CREATE OR REPLACE` and idempotent**, so `pnpm db:functions` is
+   safe to re-run. Never edit a generated file in `migrations/` to change one.
+4. **Document the scoring contract** — inputs, output columns, and the weighting — in
+   the file header. A reviewer must not have to reverse-engineer the weights.
+
+Rule of thumb: use SQL when the work is set-shaped and data-adjacent. Use `src/domain/`
+when the work is rule-shaped and needs tests. If you find yourself wanting both, you
+want one — pick it deliberately and delete the other.
+
+---

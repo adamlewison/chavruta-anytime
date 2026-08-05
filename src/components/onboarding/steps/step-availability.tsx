@@ -1,7 +1,7 @@
 "use client";
 
 import { GridPicker } from "@/components/availability/grid-picker";
-import { createEmptyBitmap } from "@/lib/availability";
+import { createEmptyBitmap } from "@/domain/availability";
 import type { OnboardingData } from "../onboarding-wizard";
 
 interface StepAvailabilityProps {

@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { verificationTokens } from "@/db/schema";
 import { resend, RESEND_FROM } from "@/lib/email";
 import { eq, and, gt } from "drizzle-orm";
-import { generateCode, encodeToken } from "@/lib/token";
+import { generateCode, encodeToken } from "@/domain/token";
 
 const CODE_TTL_MINUTES = 10;
 const MAX_SENDS_PER_HOUR = 5;

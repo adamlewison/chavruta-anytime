@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { users, accounts, authSessions, verificationTokens } from "@/db/schema";
 import { eq, and, gt } from "drizzle-orm";
 import type { JWT } from "next-auth/jwt";
-import { verifyToken } from "@/lib/token";
+import { verifyToken } from "@/domain/token";
 
 import "@/lib/auth-types";
 

@@ -12,7 +12,7 @@ import {
   conversations,
 } from "@/db/schema";
 import { eq, and, or, ne, asc } from "drizzle-orm";
-import { expandToUtcWeek, overlap, getNextSundayUtc } from "@/lib/availability";
+import { expandToUtcWeek, overlap, getNextSundayUtc } from "@/domain/availability";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

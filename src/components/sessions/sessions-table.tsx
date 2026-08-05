@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cancelSession } from "@/server/actions/sessions";
-import { describeSchedule } from "@/lib/rrule";
+import { describeSchedule } from "@/domain/rrule";
 import { toast } from "sonner";
 
 export type SessionRow = {

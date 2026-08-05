@@ -42,7 +42,7 @@
     "ARCH005|src/app/(call)/call/[occurrenceId]/call-page-client.tsx",
     "ARCH005|src/components/onboarding/onboarding-wizard.tsx",
     "ARCH005|src/components/settings/learning-profiles.tsx",
-    "ARCH005|src/lib/availability.ts",
+    "ARCH005|src/domain/availability.ts",
     "ARCH005|src/server/actions/chaburas.ts",
     "ARCH005|src/server/actions/sessions.ts",
     "ARCH006|src/app/(app)/chaburas/[slug]/page.tsx",

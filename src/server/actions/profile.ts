@@ -7,7 +7,7 @@ import { eq, and, gt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { resend, RESEND_FROM } from "@/lib/email";
-import { generateCode, encodeToken, verifyToken } from "@/lib/token";
+import { generateCode, encodeToken, verifyToken } from "@/domain/token";
 
 export async function updateProfile(data: {
   name?: string;

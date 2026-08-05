@@ -19,7 +19,7 @@ import {
   getNextSundayUtc,
   applyPreset,
   TOTAL_BITS,
-} from "../availability";
+} from "./availability";
 
 describe("availability bitmap", () => {
   describe("bit helpers", () => {
