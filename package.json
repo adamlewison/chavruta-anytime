@@ -13,6 +13,8 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
+    "check:arch": "node scripts/check-architecture.mjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm check:arch",
     "prepare": "husky",
     "db:push": "tsx src/db/drizzle.ts push",
     "db:generate": "tsx src/db/drizzle.ts generate",

@@ -30,3 +30,8 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      # Structural rules from ARCHITECTURE.md. Pre-existing violations are
+      # recorded in scripts/architecture-baseline.json; only NEW ones fail.
+      - name: Architecture
+        run: pnpm check:arch
