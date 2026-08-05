@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { signIn } from "@/lib/auth";
+import { signIn } from "@/server/auth";
 import { Logo } from "@/components/brand/logo";
 import { LogoName } from "@/components/brand/logo-name";
 import { SignInEmailForm } from "./email-form";

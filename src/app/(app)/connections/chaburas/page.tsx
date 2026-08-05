@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { chaburas, chaburaMembers } from "@/db/schema";
 import { eq, and, inArray, desc, sql } from "drizzle-orm";

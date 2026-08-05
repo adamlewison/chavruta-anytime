@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { sessionOccurrences, learningSessions } from "@/db/schema";
 import { eq } from "drizzle-orm";

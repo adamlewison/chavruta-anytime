@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { calls, sessionOccurrences, learningSessions, chaburaMembers } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { notifications } from "@/db/schema/notifications";
 import { messages, conversationMembers } from "@/db/schema/messages";
 import { eq, ne, sql, and, gt, isNull } from "drizzle-orm";
-import type { PollState } from "@/lib/poll";
+import type { PollState } from "@/hooks/use-poll";
 
 export async function GET(request: NextRequest) {
   const session = await auth();

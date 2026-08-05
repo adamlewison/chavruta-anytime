@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { getNotificationSettings } from "@/server/actions/notifications";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 

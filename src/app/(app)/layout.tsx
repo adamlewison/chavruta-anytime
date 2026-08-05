@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { AppShell } from "@/components/layout/app-shell";
 import { OnboardingRedirect } from "@/components/onboarding/onboarding-redirect";
 

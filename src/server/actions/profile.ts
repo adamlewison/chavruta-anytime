@@ -1,12 +1,12 @@
 "use server";
 
-import { auth, signOut } from "@/lib/auth";
+import { auth, signOut } from "@/server/auth";
 import { db } from "@/db";
 import { users, accounts, verificationTokens } from "@/db/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { resend, RESEND_FROM } from "@/lib/email";
+import { resend, RESEND_FROM } from "@/server/email";
 import { generateCode, encodeToken, verifyToken } from "@/domain/token";
 
 export async function updateProfile(data: {

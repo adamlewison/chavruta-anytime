@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { COUNTRIES } from "@/lib/location-data";
+import { COUNTRIES } from "@/config/location-data";
 import type { OnboardingData } from "../onboarding-wizard";
 
 interface StepBasicsProps {

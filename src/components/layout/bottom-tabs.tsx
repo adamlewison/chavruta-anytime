@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import type { PollState } from "@/lib/poll";
+import type { PollState } from "@/hooks/use-poll";
 import { navItems } from "@/components/layout/nav-items";
 
 const tabs = navItems.filter((item) => !item.desktopOnly);

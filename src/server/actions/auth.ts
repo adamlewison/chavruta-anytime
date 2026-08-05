@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { verificationTokens } from "@/db/schema";
-import { resend, RESEND_FROM } from "@/lib/email";
+import { resend, RESEND_FROM } from "@/server/email";
 import { eq, and, gt } from "drizzle-orm";
 import { generateCode, encodeToken } from "@/domain/token";
 

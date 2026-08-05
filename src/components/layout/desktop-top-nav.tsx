@@ -23,7 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { PollState } from "@/lib/poll";
+import type { PollState } from "@/hooks/use-poll";
 
 const desktopNavItems = navItems.filter((item) => !item.mobileOnly);
 

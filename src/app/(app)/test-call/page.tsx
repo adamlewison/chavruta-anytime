@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { sessionOccurrences, learningSessions, calls } from "@/db/schema";
 import { eq, and, gt, or, inArray, asc } from "drizzle-orm";
 import { DateTime } from "luxon";
-import { getAcceptedConnections, getUserChaburaIds } from "@/lib/server/dashboard";
+import { getAcceptedConnections, getUserChaburaIds } from "@/server/queries/dashboard";
 import { TestCallClient } from "./test-call-client";
 
 export const metadata: Metadata = { title: "Test Call Creation — ChavrutaAnytime" };

@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { DateTime } from "luxon";
 import {
   getAcceptedConnections,
   getUserChaburaIds,
   getDashboardSessions,
   getDashboardChaburas,
-} from "@/lib/server/dashboard";
+} from "@/server/queries/dashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/brand/empty-state";
 import { Button } from "@/components/ui/button";

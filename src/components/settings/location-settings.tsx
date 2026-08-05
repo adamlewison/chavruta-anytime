@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Clock, Globe } from "lucide-react";
 import { updateProfile } from "@/server/actions/profile";
-import { COUNTRIES, TIMEZONES } from "@/lib/location-data";
+import { COUNTRIES, TIMEZONES } from "@/config/location-data";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";

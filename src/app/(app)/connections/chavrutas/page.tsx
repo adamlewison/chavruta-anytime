@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { connections, users, conversations, conversationMembers } from "@/db/schema";
 import { eq, or, and } from "drizzle-orm";

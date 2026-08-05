@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { studyProfiles, subjects } from "@/db/schema";
 import { eq, and } from "drizzle-orm";

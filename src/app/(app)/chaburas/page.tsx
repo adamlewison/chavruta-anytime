@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, BookOpen, Users, Globe, Lock } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { chaburas, chaburaMembers } from "@/db/schema";
 import {

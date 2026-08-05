@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { subjects, users, chaburas, connections } from "@/db/schema";
 import { asc, eq, or, and } from "drizzle-orm";

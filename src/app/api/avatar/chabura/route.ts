@@ -1,6 +1,6 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { chaburas, chaburaMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";

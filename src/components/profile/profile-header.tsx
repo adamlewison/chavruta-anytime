@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { languageName } from "@/lib/languages";
+import { languageName } from "@/config/languages";
 
 interface ProfileHeaderProps {
   name: string | null;

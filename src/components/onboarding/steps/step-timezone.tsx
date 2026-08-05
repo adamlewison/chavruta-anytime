@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TIMEZONES } from "@/lib/location-data";
+import { TIMEZONES } from "@/config/location-data";
 import type { OnboardingData } from "../onboarding-wizard";
 
 interface StepTimezoneProps {

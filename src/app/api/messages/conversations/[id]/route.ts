@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth } from "@/server/auth";
 import { db } from "@/db";
 import { messages, conversationMembers, users } from "@/db/schema";
 import { eq, and, asc } from "drizzle-orm";
