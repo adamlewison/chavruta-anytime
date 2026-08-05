@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { OnboardingData } from "../onboarding-wizard";
+import type { OnboardingData } from "@/components/onboarding/types";
 
 interface StepSubjectsProps {
   data: OnboardingData;

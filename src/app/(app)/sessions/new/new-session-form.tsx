@@ -18,7 +18,7 @@ import { RRuleBuilder } from "@/components/sessions/rrule-builder";
 import { createSession } from "@/server/actions/sessions";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft } from "lucide-react";
-import type { SessionContext } from "./page";
+import type { SessionContext } from "./types";
 
 interface Subject {
   slug: string;

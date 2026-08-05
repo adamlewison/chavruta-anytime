@@ -7,14 +7,11 @@ import { getUserTimezone, getUserHeader } from "@/server/queries/users";
 import { getChaburaContextInfo } from "@/server/queries/chaburas";
 import { getConnectionForUser } from "@/server/queries/connections";
 import { NewSessionForm } from "./new-session-form";
+import type { SessionContext } from "./types";
 
 export const metadata: Metadata = {
   title: "Create Session",
 };
-
-export type SessionContext =
-  | { type: "chabura"; id: string; name: string; image: string | null; slug: string }
-  | { type: "chavruta"; connectionId: string; partnerId: string; name: string; image: string | null };
 
 export default async function NewSessionPage({
   searchParams,

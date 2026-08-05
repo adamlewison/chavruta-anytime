@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TIMEZONES } from "@/config/location-data";
-import type { OnboardingData } from "../onboarding-wizard";
+import type { OnboardingData } from "@/components/onboarding/types";
 
 interface StepTimezoneProps {
   data: OnboardingData;

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/config/location-data";
-import type { OnboardingData } from "../onboarding-wizard";
+import type { OnboardingData } from "@/components/onboarding/types";
 
 interface StepBasicsProps {
   data: OnboardingData;

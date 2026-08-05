@@ -15,19 +15,7 @@ import { StepTimezone } from "./steps/step-timezone";
 import { StepSubjects } from "./steps/step-subjects";
 import { StepAvailability } from "./steps/step-availability";
 import { completeOnboarding } from "@/server/actions/onboarding";
-
-export interface OnboardingData {
-  name: string;
-  bio: string;
-  image: string | null;
-  gender: "male" | "female" | null;
-  country: string;
-  postCode: string;
-  languages: string[];
-  timezone: string;
-  subjects: string[];
-  availability: Uint8Array | null;
-}
+import type { OnboardingData, Prefill } from "./types";
 
 const STORAGE_KEY = "chavruta-onboarding-data";
 const TOTAL_STEPS = 6;
@@ -40,11 +28,6 @@ const STEP_LABELS = [
   "Subjects",
   "Availability",
 ];
-
-interface Prefill {
-  name: string;
-  image: string | null;
-}
 
 function defaultData(prefill?: Prefill): OnboardingData {
   return {
