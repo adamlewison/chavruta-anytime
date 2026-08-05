@@ -60,7 +60,6 @@
     "ARCH008|src/server/actions/auth.ts",
     "ARCH008|src/server/actions/chaburas.ts",
     "ARCH008|src/server/actions/connections.ts",
-    "ARCH008|src/server/actions/match.ts",
     "ARCH008|src/server/actions/matches.ts",
     "ARCH008|src/server/actions/messages.ts",
     "ARCH008|src/server/actions/notifications.ts",
