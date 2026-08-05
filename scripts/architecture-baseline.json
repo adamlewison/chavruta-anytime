@@ -15,12 +15,6 @@
     "ARCH001|src/app/(app)/sessions/[id]/o/[occurrenceId]/page.tsx",
     "ARCH001|src/app/(app)/sessions/[id]/page.tsx",
     "ARCH001|src/app/(app)/sessions/new/page.tsx",
-    "ARCH001|src/app/(app)/settings/accounts/page.tsx",
-    "ARCH001|src/app/(app)/settings/email/page.tsx",
-    "ARCH001|src/app/(app)/settings/layout.tsx",
-    "ARCH001|src/app/(app)/settings/learning-profiles/page.tsx",
-    "ARCH001|src/app/(app)/settings/location/page.tsx",
-    "ARCH001|src/app/(app)/settings/public-profile/page.tsx",
     "ARCH001|src/app/(app)/test-call/page.tsx",
     "ARCH001|src/app/(call)/call/[occurrenceId]/page.tsx",
     "ARCH001|src/app/api/avatar/chabura/route.ts",
@@ -49,7 +43,6 @@
     "ARCH006|src/app/(app)/sessions/[id]/page.tsx",
     "ARCH006|src/app/(auth)/verify/page.tsx",
     "ARCH006|src/app/(call)/call/[occurrenceId]/page.tsx",
-    "ARCH006|src/app/api/calls/route.ts",
-    "ARCH008|src/server/actions/matches.ts"
+    "ARCH006|src/app/api/calls/route.ts"
   ]
 }

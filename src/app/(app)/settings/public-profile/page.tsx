@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getUserPublicProfile } from "@/server/queries/users";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { AvatarUploadDialog } from "@/components/settings/avatar-upload-dialog";
 import { DangerZone } from "@/components/settings/danger-zone";
@@ -27,19 +25,7 @@ export default async function PublicProfilePage() {
 
   if (session?.user?.id) {
     try {
-      const [row] = await db()
-        .select({
-          email: users.email,
-          name: users.name,
-          bio: users.bio,
-          country: users.country,
-          timezone: users.timezone,
-          image: users.image,
-          gender: users.gender,
-          profileVisible: users.profileVisible,
-        })
-        .from(users)
-        .where(eq(users.id, session.user.id));
+      const row = await getUserPublicProfile(session.user.id);
 
       if (row) {
         profile = {

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
-import { users, accounts } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getUserEmail, getLinkedAccounts } from "@/server/queries/users";
 import { ConnectedAccounts } from "@/components/settings/connected-accounts";
 
 export const metadata: Metadata = {
@@ -17,20 +15,10 @@ export default async function AccountsPage() {
 
   if (session?.user?.id) {
     try {
-      const [userRow] = await db()
-        .select({ email: users.email })
-        .from(users)
-        .where(eq(users.id, session.user.id));
+      const userEmail = await getUserEmail(session.user.id);
+      if (userEmail) email = userEmail;
 
-      if (userRow) email = userRow.email;
-
-      linkedAccounts = await db()
-        .select({
-          provider: accounts.provider,
-          providerAccountId: accounts.providerAccountId,
-        })
-        .from(accounts)
-        .where(eq(accounts.userId, session.user.id));
+      linkedAccounts = await getLinkedAccounts(session.user.id);
     } catch {
       // fall through with empty defaults
     }

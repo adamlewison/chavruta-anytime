@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getUserHeader } from "@/server/queries/users";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SettingsNav } from "@/components/settings/settings-nav";
 
@@ -25,10 +23,7 @@ export default async function SettingsLayout({
   let image: string | null = null;
 
   try {
-    const [row] = await db()
-      .select({ name: users.name, image: users.image })
-      .from(users)
-      .where(eq(users.id, session.user.id));
+    const row = await getUserHeader(session.user.id);
 
     if (row) {
       name = row.name ?? "";

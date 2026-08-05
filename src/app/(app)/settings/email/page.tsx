@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getUserEmail } from "@/server/queries/users";
 import { EmailSettings } from "@/components/settings/email-settings";
 
 export const metadata: Metadata = {
@@ -15,11 +13,8 @@ export default async function EmailPage() {
 
   if (session?.user?.id) {
     try {
-      const [row] = await db()
-        .select({ email: users.email })
-        .from(users)
-        .where(eq(users.id, session.user.id));
-      if (row) email = row.email;
+      const row = await getUserEmail(session.user.id);
+      if (row) email = row;
     } catch {
       // fall back to session email
     }
