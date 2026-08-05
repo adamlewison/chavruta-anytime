@@ -1,7 +1,5 @@
 {
   "entries": [
-    "ARCH001|src/app/(app)/test-call/page.tsx",
-    "ARCH001|src/app/(call)/call/[occurrenceId]/page.tsx",
     "ARCH005|src/app/(app)/sessions/[id]/page.tsx",
     "ARCH005|src/app/(call)/call/[occurrenceId]/call-page-client.tsx",
     "ARCH005|src/components/onboarding/onboarding-wizard.tsx",
@@ -14,7 +12,6 @@
     "ARCH006|src/app/(app)/notifications/page.tsx",
     "ARCH006|src/app/(app)/profile/[userId]/page.tsx",
     "ARCH006|src/app/(app)/sessions/[id]/page.tsx",
-    "ARCH006|src/app/(auth)/verify/page.tsx",
-    "ARCH006|src/app/(call)/call/[occurrenceId]/page.tsx"
+    "ARCH006|src/app/(auth)/verify/page.tsx"
   ]
 }

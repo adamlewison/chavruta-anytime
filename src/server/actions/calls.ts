@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { calls, sessionOccurrences } from "@/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { uuid } from "@/domain/schemas/common";
 import { firstError } from "@/domain/schemas/common";
 
@@ -37,6 +37,43 @@ export async function claimOccurrenceCall(occurrenceId: string, callId: string) 
     .set({ callId })
     .where(and(eq(sessionOccurrences.id, occurrenceId), isNull(sessionOccurrences.callId)))
     .returning({ callId: sessionOccurrences.callId });
+}
+
+/**
+ * Get-or-create the active call for an occurrence's room, atomically, via a
+ * single CTE statement: the INSERT (or reactivate, on room_name conflict)
+ * and the occurrence's call_id UPDATE happen in one round-trip, so
+ * concurrent joiners can't produce duplicate call rows. ON CONFLICT
+ * preserves startedBy.
+ */
+export async function getOrCreateCallForOccurrence(
+  occurrenceId: string,
+  roomName: string,
+  userId: string,
+) {
+  const { rows: [call] } = await db().execute<{
+    id: string;
+    room_name: string;
+    started_at: string | null;
+  }>(sql`
+    WITH ins AS (
+      INSERT INTO calls (room_name, started_by, status)
+      VALUES (${roomName}, ${userId}, 'active')
+      ON CONFLICT (room_name) DO UPDATE
+        SET status = 'active', ended_at = NULL
+      RETURNING id, room_name, started_at
+    ),
+    upd AS (
+      UPDATE session_occurrences
+      SET call_id = ins.id
+      FROM ins
+      WHERE session_occurrences.id = ${occurrenceId}
+        AND session_occurrences.call_id IS NULL
+    )
+    SELECT id, room_name, started_at FROM ins
+  `);
+
+  return call;
 }
 
 /** Marks a call as ended. */
