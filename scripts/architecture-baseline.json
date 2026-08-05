@@ -1,6 +1,5 @@
 {
   "entries": [
-    "ARCH001|src/app/(app)/profile/[userId]/page.tsx",
     "ARCH001|src/app/(app)/test-call/page.tsx",
     "ARCH001|src/app/(call)/call/[occurrenceId]/page.tsx",
     "ARCH001|src/app/api/avatar/chabura/route.ts",
@@ -10,7 +9,6 @@
     "ARCH001|src/app/api/cron/topup-occurrences/route.ts",
     "ARCH001|src/app/api/messages/conversations/[id]/route.ts",
     "ARCH001|src/app/api/poll/route.ts",
-    "ARCH005|src/app/(app)/profile/[userId]/page.tsx",
     "ARCH005|src/app/(app)/sessions/[id]/page.tsx",
     "ARCH005|src/app/(call)/call/[occurrenceId]/call-page-client.tsx",
     "ARCH005|src/components/onboarding/onboarding-wizard.tsx",

@@ -47,6 +47,17 @@ export async function getUserTimezone(userId: string) {
   return row?.timezone ?? null;
 }
 
+export async function getUserAvailabilityAndTimezone(userId: string) {
+  const [row] = await db()
+    .select({
+      availability: users.availability,
+      timezone: users.timezone,
+    })
+    .from(users)
+    .where(eq(users.id, userId));
+  return row ?? null;
+}
+
 export async function getUserPublicProfile(userId: string) {
   const [row] = await db()
     .select({

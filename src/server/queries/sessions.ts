@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { learningSessions, sessionOccurrences, subjects } from "@/db/schema";
-import { eq, and, gt, asc } from "drizzle-orm";
+import { eq, and, gt, ne, asc } from "drizzle-orm";
 
 /** Learning sessions belonging to a chabura, oldest created first. */
 export async function listChaburaSessions(chaburaId: string) {
@@ -85,6 +85,29 @@ export async function getSessionDetail(sessionId: string) {
     .leftJoin(subjects, eq(learningSessions.subjectId, subjects.id))
     .where(eq(learningSessions.id, sessionId));
   return row ?? null;
+}
+
+/** Non-cancelled learning sessions shared under a chavruta connection, oldest created first. */
+export async function listChavrutaSessions(connectionId: string) {
+  return db()
+    .select({
+      id: learningSessions.id,
+      title: learningSessions.title,
+      status: learningSessions.status,
+      createdById: learningSessions.createdById,
+      rrule: learningSessions.rrule,
+      dtstart: learningSessions.dtstart,
+      durationMin: learningSessions.durationMin,
+      timezone: learningSessions.timezone,
+    })
+    .from(learningSessions)
+    .where(
+      and(
+        eq(learningSessions.chavrutaPairId, connectionId),
+        ne(learningSessions.status, "cancelled"),
+      ),
+    )
+    .orderBy(asc(learningSessions.createdAt));
 }
 
 /** Up to 10 upcoming (future, started after `now`) occurrences of a session. */
