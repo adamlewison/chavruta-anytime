@@ -270,6 +270,17 @@ export async function updateChabura(
   }
 }
 
+/**
+ * Sets a chabura's avatar image. Caller (the avatar upload route) has already
+ * verified the requester is rosh of this chabura before calling.
+ */
+export async function updateChaburaImage(chaburaId: string, imageUrl: string) {
+  await db()
+    .update(chaburas)
+    .set({ image: imageUrl, updatedAt: new Date() })
+    .where(eq(chaburas.id, chaburaId));
+}
+
 export async function leaveChabura(
   chaburaId: string,
 ): Promise<{ success: boolean; error?: string }> {

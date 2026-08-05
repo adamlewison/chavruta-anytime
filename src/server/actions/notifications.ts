@@ -21,6 +21,19 @@ export type NotificationType =
 
 export type NotificationChannel = "in_app" | "email" | "push";
 
+/**
+ * Creates a notification for an arbitrary user. Used by system callers (cron
+ * jobs, other actions) that act on behalf of someone other than the signed-in
+ * user, so unlike the rest of this module it does not check auth() itself.
+ */
+export async function createNotification(
+  userId: string,
+  type: NotificationType,
+  payload: Record<string, unknown>,
+) {
+  await db().insert(notifications).values({ userId, type, payload });
+}
+
 // Returns a set of keys "{type}_{channel}" that are explicitly disabled.
 // Missing from the set = enabled (sparse strategy).
 export async function getNotificationSettings(): Promise<{

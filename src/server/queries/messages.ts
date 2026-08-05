@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { conversations, conversationMembers, messages, users } from "@/db/schema";
-import { eq, and, ne, asc, desc } from "drizzle-orm";
+import { eq, and, ne, gt, asc, desc, sql } from "drizzle-orm";
 
 /** The single conversation id backing a chabura's group chat, if any. */
 export async function getChaburaConversationId(chaburaId: string) {
@@ -96,6 +96,41 @@ export async function listUserDmConversationIds(userId: string) {
     )
     .where(eq(conversationMembers.userId, userId));
   return rows.map((m) => m.conversationId);
+}
+
+/** Every conversation a user belongs to, with their last-read timestamp — for the poll endpoint. */
+export async function listUserConversationReadState(userId: string) {
+  return db()
+    .select({
+      conversationId: conversationMembers.conversationId,
+      lastReadAt: conversationMembers.lastReadAt,
+    })
+    .from(conversationMembers)
+    .where(eq(conversationMembers.userId, userId));
+}
+
+/** Unread message count + latest timestamp for a conversation, from another sender since `lastReadAt`. */
+export async function getConversationUnreadStats(
+  conversationId: string,
+  userId: string,
+  lastReadAt: Date | null,
+) {
+  const conditions = [
+    eq(messages.conversationId, conversationId),
+    ne(messages.senderId, userId),
+  ];
+  if (lastReadAt) {
+    conditions.push(gt(messages.createdAt, lastReadAt));
+  }
+
+  const [row] = await db()
+    .select({
+      count: sql<number>`count(*)`,
+      latestId: sql<string | null>`max(${messages.createdAt})`,
+    })
+    .from(messages)
+    .where(and(...conditions));
+  return row;
 }
 
 /** True when `userId` is a member of `conversationId`. */

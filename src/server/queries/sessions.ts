@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { learningSessions, sessionOccurrences, subjects } from "@/db/schema";
-import { eq, and, gt, ne, asc } from "drizzle-orm";
+import { eq, and, gt, gte, lte, ne, asc, sql } from "drizzle-orm";
 
 /** Learning sessions belonging to a chabura, oldest created first. */
 export async function listChaburaSessions(chaburaId: string) {
@@ -130,4 +130,48 @@ export async function listUpcomingOccurrences(sessionId: string, now: Date) {
     )
     .orderBy(asc(sessionOccurrences.startsAt))
     .limit(10);
+}
+
+/** Scheduled occurrences (with their parent session) starting within a time window, for reminder fan-out. */
+export async function listOccurrencesStartingSoon(from: Date, to: Date) {
+  return db()
+    .select({
+      occurrence: sessionOccurrences,
+      session: learningSessions,
+    })
+    .from(sessionOccurrences)
+    .innerJoin(
+      learningSessions,
+      eq(sessionOccurrences.sessionId, learningSessions.id),
+    )
+    .where(
+      and(
+        eq(sessionOccurrences.status, "scheduled"),
+        gte(sessionOccurrences.startsAt, from),
+        lte(sessionOccurrences.startsAt, to),
+      ),
+    );
+}
+
+/** All learning sessions with status "active", for the occurrence topup cron. */
+export async function listActiveSessions() {
+  return db()
+    .select()
+    .from(learningSessions)
+    .where(eq(learningSessions.status, "active"));
+}
+
+/** Count of scheduled occurrences of a session that start after `now`. */
+export async function countFutureOccurrences(sessionId: string, now: Date) {
+  const futureCount = await db()
+    .select({ count: sql<number>`count(*)` })
+    .from(sessionOccurrences)
+    .where(
+      and(
+        eq(sessionOccurrences.sessionId, sessionId),
+        eq(sessionOccurrences.status, "scheduled"),
+        gt(sessionOccurrences.startsAt, now),
+      ),
+    );
+  return Number(futureCount[0]?.count ?? 0);
 }

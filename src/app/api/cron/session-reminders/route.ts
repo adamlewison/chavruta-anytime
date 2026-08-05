@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { db } from "@/db";
-import {
-  sessionOccurrences,
-  learningSessions,
-  notifications,
-  connections,
-  chaburaMembers,
-} from "@/db/schema";
-import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { listOccurrencesStartingSoon } from "@/server/queries/sessions";
+import { hasSessionStartingSoonNotification } from "@/server/queries/notifications";
+import { getConnectionPair } from "@/server/queries/connections";
+import { listChaburaMemberIds } from "@/server/queries/chaburas";
+import { createNotification } from "@/server/actions/notifications";
 
 export async function POST(request: NextRequest) {
   // Verify CRON_SECRET
@@ -17,71 +13,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const database = db();
-
   const now = new Date();
   const nineMinFromNow = new Date(now.getTime() + 9 * 60 * 1000);
   const elevenMinFromNow = new Date(now.getTime() + 11 * 60 * 1000);
 
   // Find occurrences starting in ~10 minutes
-  const upcomingOccurrences = await database
-    .select({
-      occurrence: sessionOccurrences,
-      session: learningSessions,
-    })
-    .from(sessionOccurrences)
-    .innerJoin(
-      learningSessions,
-      eq(sessionOccurrences.sessionId, learningSessions.id)
-    )
-    .where(
-      and(
-        eq(sessionOccurrences.status, "scheduled"),
-        gte(sessionOccurrences.startsAt, nineMinFromNow),
-        lte(sessionOccurrences.startsAt, elevenMinFromNow)
-      )
-    );
+  const upcomingOccurrences = await listOccurrencesStartingSoon(nineMinFromNow, elevenMinFromNow);
 
   let created = 0;
 
   for (const { occurrence, session } of upcomingOccurrences) {
     // Check if notification already exists for this occurrence
-    const existing = await database
-      .select({ count: sql<number>`count(*)` })
-      .from(notifications)
-      .where(
-        and(
-          eq(notifications.type, "session_starting_soon"),
-          sql`${notifications.payload}->>'occurrenceId' = ${occurrence.id}`
-        )
-      );
+    const alreadyNotified = await hasSessionStartingSoonNotification(occurrence.id);
 
-    if (Number(existing[0]?.count ?? 0) > 0) continue;
+    if (alreadyNotified) continue;
 
     // Determine participants based on session type
     const participantIds: string[] = [];
 
     if (session.type === "chavruta" && session.chavrutaPairId) {
       // Get both users from the connection
-      const connection = await database
-        .select()
-        .from(connections)
-        .where(eq(connections.id, session.chavrutaPairId))
-        .limit(1);
+      const connection = await getConnectionPair(session.chavrutaPairId);
 
-      if (connection[0]) {
+      if (connection) {
         participantIds.push(
-          connection[0].requesterId,
-          connection[0].addresseeId
+          connection.requesterId,
+          connection.addresseeId
         );
       }
     } else if (session.type === "chabura" && session.chaburaId) {
       // For chabura sessions, notify all members (rosh + member roles)
-      const members = await database
-        .select({ userId: chaburaMembers.userId })
-        .from(chaburaMembers)
-        .where(eq(chaburaMembers.chaburaId, session.chaburaId));
-      participantIds.push(...members.map((m) => m.userId));
+      participantIds.push(...(await listChaburaMemberIds(session.chaburaId)));
     } else {
       // Fallback: notify creator
       participantIds.push(session.createdById);
@@ -89,15 +51,11 @@ export async function POST(request: NextRequest) {
 
     // Create notifications for all participants
     for (const userId of participantIds) {
-      await database.insert(notifications).values({
-        userId,
-        type: "session_starting_soon",
-        payload: {
-          occurrenceId: occurrence.id,
-          sessionId: session.id,
-          title: session.title,
-          startsAt: occurrence.startsAt.toISOString(),
-        },
+      await createNotification(userId, "session_starting_soon", {
+        occurrenceId: occurrence.id,
+        sessionId: session.id,
+        title: session.title,
+        startsAt: occurrence.startsAt.toISOString(),
       });
       created++;
     }

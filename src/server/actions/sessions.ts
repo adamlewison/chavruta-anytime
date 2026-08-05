@@ -477,6 +477,24 @@ export async function restoreOccurrence(
   }
 }
 
+/**
+ * Inserts a single scheduled occurrence for a session (no-op if one already
+ * exists at that start time, via onConflictDoNothing). Used by the
+ * occurrence-topup cron to keep each active session stocked with future
+ * occurrences.
+ */
+export async function createOccurrence(sessionId: string, startsAt: Date, endsAt: Date) {
+  await db()
+    .insert(sessionOccurrences)
+    .values({
+      sessionId,
+      startsAt,
+      endsAt,
+      status: "scheduled",
+    })
+    .onConflictDoNothing();
+}
+
 export async function updateOccurrenceStatus(
   occurrenceId: string,
   status: "scheduled" | "cancelled" | "completed" | "missed",

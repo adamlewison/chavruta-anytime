@@ -88,6 +88,15 @@ export async function getChaburaMembers(chaburaId: string) {
     .orderBy(asc(chaburaMembers.joinedAt));
 }
 
+/** User ids of a chabura's members. */
+export async function listChaburaMemberIds(chaburaId: string) {
+  const rows = await db()
+    .select({ userId: chaburaMembers.userId })
+    .from(chaburaMembers)
+    .where(eq(chaburaMembers.chaburaId, chaburaId));
+  return rows.map((m) => m.userId);
+}
+
 /** Ids of chaburas the user is an active (rosh or member) member of. */
 export async function getUserChaburaMembershipIds(userId: string) {
   const rows = await db()

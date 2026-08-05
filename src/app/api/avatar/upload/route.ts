@@ -1,9 +1,7 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { updateUserAvatarImage } from "@/server/actions/avatar";
 
 export async function POST(request: Request): Promise<NextResponse> {
   const session = await auth();
@@ -21,10 +19,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     access: "public",
   });
 
-  await db()
-    .update(users)
-    .set({ image: blob.url, updatedAt: new Date() })
-    .where(eq(users.id, session.user.id));
+  await updateUserAvatarImage(session.user.id, blob.url);
 
   return NextResponse.json(blob);
 }
