@@ -8,8 +8,6 @@ import { eq, and, gt } from "drizzle-orm";
 import type { JWT } from "next-auth/jwt";
 import { verifyToken } from "@/domain/token";
 
-import "@/types/next-auth";
-
 export const { auth, signIn, signOut, handlers } = NextAuth(() => {
   const database = db();
   return {

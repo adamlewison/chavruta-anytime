@@ -1,5 +1,5 @@
 import Image from "next/image";
-import logoNameSrc from "../../../public/ca-logo-name.png";
+import logoNameSrc from "~public/ca-logo-name.png";
 import { cn } from "@/lib/utils";
 
 export function LogoName({ className }: { className?: string }) {
