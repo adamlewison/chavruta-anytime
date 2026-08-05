@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { users, accounts } from "@/db/schema";
+import { users, accounts, subjects, userSubjects } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 /**
@@ -72,4 +72,28 @@ export async function getLinkedAccounts(userId: string) {
     })
     .from(accounts)
     .where(eq(accounts.userId, userId));
+}
+
+export async function getOwnProfile(userId: string) {
+  const [row] = await db()
+    .select({
+      name: users.name,
+      image: users.image,
+      bio: users.bio,
+      country: users.country,
+      timezone: users.timezone,
+      languages: users.languages,
+      email: users.email,
+    })
+    .from(users)
+    .where(eq(users.id, userId));
+  return row ?? null;
+}
+
+export async function getUserSubjectNames(userId: string) {
+  return db()
+    .select({ name: subjects.name })
+    .from(userSubjects)
+    .innerJoin(subjects, eq(userSubjects.subjectId, subjects.id))
+    .where(eq(userSubjects.userId, userId));
 }

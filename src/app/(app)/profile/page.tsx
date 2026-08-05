@@ -2,14 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
-import { users, userSubjects, subjects } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { Pencil, BookOpen } from "lucide-react";
+import { getOwnProfile, getUserSubjectNames } from "@/server/queries/users";
 
 export const metadata: Metadata = {
   title: "My Profile — ChavrutaAnytime",
@@ -46,26 +44,11 @@ export default async function ProfilePage() {
   let subjectsList: Array<{ name: string }> = [];
 
   try {
-    const [row] = await db()
-      .select({
-        name: users.name,
-        image: users.image,
-        bio: users.bio,
-        country: users.country,
-        timezone: users.timezone,
-        languages: users.languages,
-        email: users.email,
-      })
-      .from(users)
-      .where(eq(users.id, session.user.id));
+    const row = await getOwnProfile(session.user.id);
 
     if (row) profile = row;
 
-    subjectsList = await db()
-      .select({ name: subjects.name })
-      .from(userSubjects)
-      .innerJoin(subjects, eq(userSubjects.subjectId, subjects.id))
-      .where(eq(userSubjects.userId, session.user.id));
+    subjectsList = await getUserSubjectNames(session.user.id);
   } catch (error) {
     console.error("Profile load error:", error);
   }

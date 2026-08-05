@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
-import { notifications } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
 import { EmptyState } from "@/components/brand/empty-state";
 import { MarkAllReadButton } from "@/components/notifications/mark-all-read-button";
 import { NotificationLink } from "@/components/notifications/notification-link";
 import { cn } from "@/lib/utils";
 import { Bell, UserPlus, Users, Calendar, MessageSquare, Sparkles } from "lucide-react";
+import { listNotifications } from "@/server/queries/notifications";
 
 export const metadata: Metadata = {
   title: "Notifications — ChavrutaAnytime",
@@ -103,18 +101,7 @@ export default async function NotificationsPage() {
   let notifs: NotificationRow[] = [];
 
   try {
-    notifs = await db()
-      .select({
-        id: notifications.id,
-        type: notifications.type,
-        payload: notifications.payload,
-        readAt: notifications.readAt,
-        createdAt: notifications.createdAt,
-      })
-      .from(notifications)
-      .where(eq(notifications.userId, session.user.id))
-      .orderBy(desc(notifications.createdAt))
-      .limit(50);
+    notifs = await listNotifications(session.user.id);
   } catch (err) {
     console.error("Notifications query error:", err);
   }
