@@ -188,3 +188,12 @@ export async function getChaburaNameImageSlug(chaburaId: string) {
     .where(eq(chaburas.id, chaburaId));
   return row ?? null;
 }
+
+/** Id + name + image + slug for a chabura, for new-session context. */
+export async function getChaburaContextInfo(chaburaId: string) {
+  const [row] = await db()
+    .select({ id: chaburas.id, name: chaburas.name, image: chaburas.image, slug: chaburas.slug })
+    .from(chaburas)
+    .where(eq(chaburas.id, chaburaId));
+  return row ?? null;
+}

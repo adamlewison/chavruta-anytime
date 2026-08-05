@@ -2,16 +2,14 @@ import type { Metadata } from "next";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
 import {
-  learningSessions,
-  sessionOccurrences,
-  subjects,
-  connections,
-  users,
-  chaburas,
-} from "@/db/schema";
-import { eq, and, gt, asc, or } from "drizzle-orm";
+  getSessionTitle,
+  getSessionDetail,
+  listUpcomingOccurrences,
+} from "@/server/queries/sessions";
+import { getConnectionPair } from "@/server/queries/connections";
+import { getUserHeader } from "@/server/queries/users";
+import { getChaburaNameImageSlug } from "@/server/queries/chaburas";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,11 +30,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const [row] = await db()
-    .select({ title: learningSessions.title })
-    .from(learningSessions)
-    .where(eq(learningSessions.id, id));
-  return { title: row?.title ?? "Session" };
+  const title = await getSessionTitle(id);
+  return { title: title ?? "Session" };
 }
 
 export default async function SessionDetailPage({
@@ -82,82 +77,32 @@ export default async function SessionDetailPage({
   }> = [];
 
   try {
-    const [row] = await db()
-      .select({
-        id: learningSessions.id,
-        title: learningSessions.title,
-        status: learningSessions.status,
-        rrule: learningSessions.rrule,
-        dtstart: learningSessions.dtstart,
-        durationMin: learningSessions.durationMin,
-        timezone: learningSessions.timezone,
-        subjectName: subjects.name,
-        meetUrl: learningSessions.meetUrl,
-        createdById: learningSessions.createdById,
-        chavrutaPairId: learningSessions.chavrutaPairId,
-        chaburaId: learningSessions.chaburaId,
-      })
-      .from(learningSessions)
-      .leftJoin(subjects, eq(learningSessions.subjectId, subjects.id))
-      .where(eq(learningSessions.id, id));
+    const row = await getSessionDetail(id);
 
     if (!row) notFound();
     sessionData = row;
 
     // Resolve partner name (chavruta) or chabura name
     if (row.chavrutaPairId) {
-      const [conn] = await db()
-        .select({
-          requesterId: connections.requesterId,
-          addresseeId: connections.addresseeId,
-        })
-        .from(connections)
-        .where(eq(connections.id, row.chavrutaPairId));
+      const conn = await getConnectionPair(row.chavrutaPairId);
       if (conn) {
         partnerId =
           conn.requesterId === session.user.id
             ? conn.addresseeId
             : conn.requesterId;
-        const [partner] = await db()
-          .select({ name: users.name, image: users.image })
-          .from(users)
-          .where(eq(users.id, partnerId));
+        const partner = await getUserHeader(partnerId);
         partnerName = partner?.name ?? null;
         partnerImage = partner?.image ?? null;
       }
     } else if (row.chaburaId) {
-      const [chab] = await db()
-        .select({
-          name: chaburas.name,
-          image: chaburas.image,
-          slug: chaburas.slug,
-        })
-        .from(chaburas)
-        .where(eq(chaburas.id, row.chaburaId));
+      const chab = await getChaburaNameImageSlug(row.chaburaId);
       chaburaName = chab?.name ?? null;
       chaburaImage = chab?.image ?? null;
       chaburaSlug = chab?.slug ?? null;
     }
 
     const now = new Date();
-    occurrences = await db()
-      .select({
-        id: sessionOccurrences.id,
-        sessionId: sessionOccurrences.sessionId,
-        startsAt: sessionOccurrences.startsAt,
-        endsAt: sessionOccurrences.endsAt,
-        status: sessionOccurrences.status,
-        meetUrl: sessionOccurrences.meetUrl,
-      })
-      .from(sessionOccurrences)
-      .where(
-        and(
-          eq(sessionOccurrences.sessionId, id),
-          gt(sessionOccurrences.startsAt, now),
-        ),
-      )
-      .orderBy(asc(sessionOccurrences.startsAt))
-      .limit(10);
+    occurrences = await listUpcomingOccurrences(id, now);
   } catch (err) {
     console.error("Session load error:", err);
     notFound();

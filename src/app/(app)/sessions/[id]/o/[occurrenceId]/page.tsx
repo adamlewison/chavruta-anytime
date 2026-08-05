@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/server/auth";
-import { db } from "@/db";
-import { sessionOccurrences, learningSessions } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getOccurrenceTitle, getOccurrenceDetail } from "@/server/queries/sessions";
 import { DateTime } from "luxon";
 import { Button } from "@/components/ui/button";
 import { LiveKitJoinButton } from "@/components/sessions/livekit-join-button";
@@ -17,12 +15,8 @@ export async function generateMetadata({
   params: Promise<{ id: string; occurrenceId: string }>;
 }): Promise<Metadata> {
   const { occurrenceId } = await params;
-  const [row] = await db()
-    .select({ title: learningSessions.title })
-    .from(sessionOccurrences)
-    .innerJoin(learningSessions, eq(sessionOccurrences.sessionId, learningSessions.id))
-    .where(eq(sessionOccurrences.id, occurrenceId));
-  return { title: row?.title ?? "Session Occurrence" };
+  const title = await getOccurrenceTitle(occurrenceId);
+  return { title: title ?? "Session Occurrence" };
 }
 
 export default async function OccurrenceDetailPage({
@@ -51,26 +45,7 @@ export default async function OccurrenceDetailPage({
   } | null = null;
 
   try {
-    const [row] = await db()
-      .select({
-        id: sessionOccurrences.id,
-        sessionId: sessionOccurrences.sessionId,
-        startsAt: sessionOccurrences.startsAt,
-        endsAt: sessionOccurrences.endsAt,
-        status: sessionOccurrences.status,
-        meetUrl: sessionOccurrences.meetUrl,
-        notes: sessionOccurrences.notes,
-        title: learningSessions.title,
-        sessionMeetUrl: learningSessions.meetUrl,
-        sessionTimezone: learningSessions.timezone,
-        createdById: learningSessions.createdById,
-      })
-      .from(sessionOccurrences)
-      .innerJoin(
-        learningSessions,
-        eq(sessionOccurrences.sessionId, learningSessions.id),
-      )
-      .where(eq(sessionOccurrences.id, occurrenceId));
+    const row = await getOccurrenceDetail(occurrenceId);
 
     if (!row || row.sessionId !== id) notFound();
     occ = row;
