@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
+import { StepWelcome } from "./steps/step-welcome";
 import { StepIdentity } from "./steps/step-identity";
 import { StepBasics } from "./steps/step-basics";
 import { StepLanguages } from "./steps/step-languages";
@@ -15,6 +16,7 @@ import { useOnboardingWizard, TOTAL_STEPS } from "@/hooks/use-onboarding-wizard"
 import type { Prefill } from "./types";
 
 const STEP_LABELS = [
+  "Welcome",
   "Identity",
   "Basics",
   "Languages",
@@ -36,6 +38,7 @@ export function OnboardingWizard({
     data,
     error,
     submitting,
+    stepIdentityRef,
     handleChange,
     handleNext,
     handleBack,
@@ -103,20 +106,25 @@ export function OnboardingWizard({
               exit="exit"
               transition={{ duration: 0.25, ease: "easeInOut" }}
             >
-              {step === 1 && (
-                <StepIdentity data={data} onChange={handleChange} />
+              {step === 1 && <StepWelcome onNext={handleNext} />}
+              {step === 2 && (
+                <StepIdentity
+                  ref={stepIdentityRef}
+                  data={data}
+                  onChange={handleChange}
+                />
               )}
-              {step === 2 && <StepBasics data={data} onChange={handleChange} />}
-              {step === 3 && (
+              {step === 3 && <StepBasics data={data} onChange={handleChange} />}
+              {step === 4 && (
                 <StepLanguages data={data} onChange={handleChange} />
               )}
-              {step === 4 && (
+              {step === 5 && (
                 <StepTimezone data={data} onChange={handleChange} />
               )}
-              {step === 5 && (
+              {step === 6 && (
                 <StepSubjects data={data} onChange={handleChange} />
               )}
-              {step === 6 && (
+              {step === 7 && (
                 <StepAvailability data={data} onChange={handleChange} />
               )}
             </motion.div>
@@ -136,7 +144,7 @@ export function OnboardingWizard({
       )}
 
       {/* Navigation buttons */}
-      <div className="flex gap-3">
+      <div className={cn("flex gap-3", step === 1 && "hidden")}>
         {step > 1 && (
           <Button
             variant="outline"
@@ -150,10 +158,11 @@ export function OnboardingWizard({
         {step < TOTAL_STEPS ? (
           <Button
             onClick={handleNext}
+            disabled={submitting}
             className="flex-1 bg-accent text-white hover:bg-accent/90"
             size="lg"
           >
-            Next
+            {submitting ? "Saving…" : "Next"}
           </Button>
         ) : (
           <Button

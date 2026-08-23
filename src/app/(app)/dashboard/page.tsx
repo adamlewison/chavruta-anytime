@@ -7,6 +7,7 @@ import {
   getUserChaburaIds,
   getDashboardSessions,
   getDashboardChaburas,
+  getUserTimezone,
 } from "@/server/queries/dashboard";
 import { DashboardView, type DashboardChavruta } from "@/components/dashboard/dashboard-view";
 
@@ -16,8 +17,12 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
-  const session = await auth();
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>;
+}) {
+  const [session, { welcome }] = await Promise.all([auth(), searchParams]);
 
   if (!session?.user?.id) {
     redirect("/sign-in");
@@ -31,6 +36,8 @@ export default async function DashboardPage() {
   const userName = session.user.name?.split(" ")[0] || "friend";
 
   const now = DateTime.utc();
+  const userTimezone = await getUserTimezone(userId);
+  const tz = userTimezone ?? "UTC";
 
   let upcomingSessions: Awaited<
     ReturnType<typeof getDashboardSessions>
@@ -73,6 +80,8 @@ export default async function DashboardPage() {
     <DashboardView
       userName={userName}
       greeting={greeting}
+      welcome={welcome === "1"}
+      timezone={tz}
       nextSession={nextSession}
       upcomingSessions={upcomingSessions}
       myChavrutas={myChavrutas}

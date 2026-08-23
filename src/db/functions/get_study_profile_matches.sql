@@ -19,6 +19,8 @@
 --
 -- Apply with `pnpm db:functions`. CREATE OR REPLACE — safe to re-run.
 
+DROP FUNCTION IF EXISTS get_study_profile_matches(UUID, INT);
+
 CREATE OR REPLACE FUNCTION get_study_profile_matches(target_user_id UUID, p_limit INT DEFAULT 50)
 RETURNS TABLE (
     id UUID,
@@ -29,7 +31,7 @@ RETURNS TABLE (
     country TEXT,
     languages TEXT[],
     timezone TEXT,
-    availability_utc TEXT[],
+    availability_utc BIT(336)[],
     matched_subject_names TEXT[],
     matched_subject_hebrew_names TEXT[],
     match_score NUMERIC,

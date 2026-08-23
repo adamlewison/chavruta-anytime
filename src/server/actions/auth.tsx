@@ -6,6 +6,8 @@ import { resend, RESEND_FROM } from "@/server/email";
 import { eq, and, gt } from "drizzle-orm";
 import { generateCode, encodeToken } from "@/domain/token";
 import { sendPasscodeSchema } from "@/domain/schemas/auth";
+import { render } from "@react-email/render";
+import { PasscodeEmail } from "@/server/email-templates/passcode-email";
 
 const CODE_TTL_MINUTES = 10;
 const MAX_SENDS_PER_HOUR = 5;
@@ -51,10 +53,15 @@ export async function sendPasscode(
       expires,
     });
 
+    const html = await render(
+      <PasscodeEmail code={code} expiresInMinutes={CODE_TTL_MINUTES} />,
+    );
+
     await resend().emails.send({
       from: RESEND_FROM,
       to: normalized,
       subject: "Your ChavrutaAnytime sign-in code",
+      html,
       text: `Your sign-in code is: ${code}\n\nThis code expires in ${CODE_TTL_MINUTES} minutes.`,
     });
 

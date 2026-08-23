@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { signIn } from "@/server/auth";
+import { redirect } from "next/navigation";
+import { getSession, signIn } from "@/server/auth";
 import { Logo } from "@/components/brand/logo";
 import { LogoName } from "@/components/brand/logo-name";
 import { SignInEmailForm } from "./email-form";
@@ -8,7 +9,9 @@ export const metadata = {
   title: "Sign in — ChavrutaAnytime",
 };
 
-export default function SignInPage() {
+export default async function SignInPage() {
+  const session = await getSession();
+  if (session?.user) redirect("/dashboard");
   return (
     <div className="flex flex-col items-center gap-8">
       {/* Logo */}

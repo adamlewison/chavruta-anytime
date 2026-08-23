@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { conversations, conversationMembers, messages, users } from "@/db/schema";
-import { eq, and, ne, gt, asc, desc, sql } from "drizzle-orm";
+import { eq, and, ne, gt, asc, desc, sql, inArray } from "drizzle-orm";
 
 /** The single conversation id backing a chabura's group chat, if any. */
 export async function getChaburaConversationId(chaburaId: string) {
@@ -131,6 +131,36 @@ export async function getConversationUnreadStats(
     .from(messages)
     .where(and(...conditions));
   return row;
+}
+
+/**
+ * For a set of DM conversation ids and candidate user ids, returns a map of
+ * userId -> conversationId for every candidate who shares one of those
+ * conversations. One batch query instead of one per (conversation, user) pair.
+ */
+export async function mapUsersToDmConversations(
+  conversationIds: string[],
+  userIds: string[],
+) {
+  const map = new Map<string, string>();
+  if (conversationIds.length === 0 || userIds.length === 0) return map;
+
+  const rows = await db()
+    .select({
+      userId: conversationMembers.userId,
+      conversationId: conversationMembers.conversationId,
+    })
+    .from(conversationMembers)
+    .where(
+      and(
+        inArray(conversationMembers.conversationId, conversationIds),
+        inArray(conversationMembers.userId, userIds),
+      ),
+    );
+  for (const row of rows) {
+    map.set(row.userId, row.conversationId);
+  }
+  return map;
 }
 
 /** True when `userId` is a member of `conversationId`. */

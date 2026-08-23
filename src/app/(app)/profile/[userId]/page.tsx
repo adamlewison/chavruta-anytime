@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/server/auth";
 import { getPublicProfileWithAvailability, listUserSubjectsWithHebrew } from "@/server/queries/profile";
@@ -9,9 +10,17 @@ import { listChavrutaSessions } from "@/server/queries/sessions";
 import { expandToUtcWeek, overlap, getNextSundayUtc } from "@/domain/availability";
 import { ProfileView, type ProfileConnectionState, type OverlapData } from "@/components/profile/profile-view";
 
-export const metadata: Metadata = {
-  title: "User Profile — ChavrutaAnytime",
-};
+const getViewedUser = cache(getPublicProfileWithAvailability);
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ userId: string }>;
+}): Promise<Metadata> {
+  const { userId } = await params;
+  const user = await getViewedUser(userId);
+  return { title: user?.name ?? "User Profile" };
+}
 
 export default async function UserProfilePage({
   params,

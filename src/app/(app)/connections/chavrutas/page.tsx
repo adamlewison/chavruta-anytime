@@ -3,7 +3,7 @@ import { auth } from "@/server/auth";
 import { listConnectionsForUser } from "@/server/queries/connections";
 import {
   listUserDmConversationIds,
-  isConversationMember,
+  mapUsersToDmConversations,
 } from "@/server/queries/messages";
 import { ChavrutasView } from "@/components/connections/chavrutas-view";
 
@@ -33,17 +33,22 @@ export default async function ChavrutasPage() {
 
     const myConvIds = await listUserDmConversationIds(userId);
 
-    const rowsWithConv = await Promise.all(
-      rows.map(async (r) => {
-        if (r.status !== "accepted") return { ...r, conversationId: null };
-        let convId: string | null = null;
-        for (const cid of myConvIds) {
-          const isMember = await isConversationMember(cid, r.otherId);
-          if (isMember) { convId = cid; break; }
-        }
-        return { ...r, conversationId: convId };
-      }),
+    // Build a map of otherId → conversationId with a single batch query instead
+    // of one query per connection × conversation.
+    const acceptedOtherIds = rows
+      .filter((r) => r.status === "accepted")
+      .map((r) => r.otherId);
+
+    const convsByOtherId = await mapUsersToDmConversations(
+      myConvIds,
+      acceptedOtherIds,
     );
+
+    const rowsWithConv = rows.map((r) => ({
+      ...r,
+      conversationId:
+        r.status === "accepted" ? (convsByOtherId.get(r.otherId) ?? null) : null,
+    }));
 
     accepted = rowsWithConv.filter((r) => r.status === "accepted");
     pendingReceived = rowsWithConv.filter(

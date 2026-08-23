@@ -7,6 +7,31 @@ import { eq, inArray } from "drizzle-orm";
 import { completeOnboardingSchema } from "@/domain/schemas/onboarding";
 import { firstError } from "@/domain/schemas/common";
 
+export async function saveIdentityStep(data: {
+  name: string;
+  bio: string;
+  image: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return { success: false, error: "Not authenticated" };
+
+    await db()
+      .update(users)
+      .set({
+        name: data.name.trim(),
+        bio: data.bio,
+        ...(data.image ? { image: data.image } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, session.user.id));
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to save" };
+  }
+}
+
 export async function completeOnboarding(data: {
   name: string;
   bio: string;

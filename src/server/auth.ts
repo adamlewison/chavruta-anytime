@@ -1,3 +1,4 @@
+import { cache } from "react";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
@@ -109,8 +110,11 @@ export const { auth, signIn, signOut, handlers } = NextAuth(() => {
           session.user.id = token.sub;
         }
         session.user.onboardedAt = (token.onboardedAt as string) ?? null;
+
         return session;
       },
     },
   };
 });
+
+export const getSession = cache(auth);

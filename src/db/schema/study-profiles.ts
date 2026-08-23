@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  customType,
   index,
   pgTable,
   text,
@@ -9,6 +10,14 @@ import {
 } from "drizzle-orm/pg-core";
 import { subjects } from "./subjects";
 import { users } from "./users";
+
+// 336-bit string (7 days × 48 half-hour slots) stored as PostgreSQL bit(336).
+// TypeScript representation is a 336-char string of '0'/'1'.
+const bit336 = customType<{ data: string }>({
+  dataType() {
+    return "bit(336)";
+  },
+});
 
 export const studyProfiles = pgTable(
   "study_profiles",
@@ -20,8 +29,8 @@ export const studyProfiles = pgTable(
     subjectId: uuid("subject_id")
       .notNull()
       .references(() => subjects.id, { onDelete: "no action" }),
-    availabilityLocal: text("availability_local").notNull(),
-    availabilityUtc: text("availability_utc").notNull(),
+    availabilityLocal: bit336("availability_local").notNull(),
+    availabilityUtc: bit336("availability_utc").notNull(),
     notes: text("notes"),
     active: boolean("active").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
