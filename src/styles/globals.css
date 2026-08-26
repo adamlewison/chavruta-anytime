@@ -195,3 +195,12 @@ body {
 .shadow-warm-lg {
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
 }
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 16px 4px rgba(246, 146, 64, 0.35); }
+  50%       { box-shadow: 0 0 36px 12px rgba(246, 146, 64, 0.65); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}

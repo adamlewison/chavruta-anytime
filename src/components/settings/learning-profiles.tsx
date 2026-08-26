@@ -8,6 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createEmptyBitmap, popcountHours } from "@/domain/availability";
 import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
   bitmapToString,
   stringToBitmap,
   computeUtcString,
@@ -45,7 +53,11 @@ interface LearningProfilesProps {
   timezone: string;
 }
 
-export function LearningProfiles({ profiles, subjects, timezone }: LearningProfilesProps) {
+export function LearningProfiles({
+  profiles,
+  subjects,
+  timezone,
+}: LearningProfilesProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<EditorStep>(1);
   const [sheetMode, setSheetMode] = useState<"add" | "edit">("add");
@@ -115,7 +127,9 @@ export function LearningProfiles({ profiles, subjects, timezone }: LearningProfi
       }
 
       if (result.success) {
-        toast.success(sheetMode === "add" ? "Learning profile created" : "Profile updated");
+        toast.success(
+          sheetMode === "add" ? "Learning profile created" : "Profile updated",
+        );
         setOpen(false);
       } else {
         toast.error(result.error ?? "Something went wrong");
@@ -138,7 +152,13 @@ export function LearningProfiles({ profiles, subjects, timezone }: LearningProfi
   return (
     <Card>
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <CardTitle className="text-base">Learning Profiles</CardTitle>
+        <div>
+          <CardTitle className="text-base">Learning Profiles</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            A learning profile tells us what you want to learn and when
+            you&apos;re available, so we can find you the right chavruta.
+          </p>
+        </div>
         <Button size="sm" onClick={openAdd}>
           <Plus className="h-4 w-4 mr-1" />
           Add profile
@@ -151,88 +171,101 @@ export function LearningProfiles({ profiles, subjects, timezone }: LearningProfi
             <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
               <BookOpen className="h-5 w-5 text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium text-foreground">No learning profiles yet</p>
-            <p className="text-xs text-muted-foreground">
-              Add a profile to get matched with a chavruta for a specific subject.
+            <p className="text-sm font-medium text-foreground">
+              No learning profiles yet
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-border">
-            {profiles.map((p) => {
-              const rowHours = popcountHours(stringToBitmap(p.availabilityLocal));
-              const isConfirming = confirmDeleteId === p.id;
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Subject</TableHead>
+                <TableHead>Hrs / week</TableHead>
+                <TableHead className="w-[1%] text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {profiles.map((p) => {
+                const rowHours = popcountHours(
+                  stringToBitmap(p.availabilityLocal),
+                );
+                const isConfirming = confirmDeleteId === p.id;
 
-              return (
-                <div key={p.id} className="flex items-center gap-3 py-3">
-                  <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
-                    <BookOpen className="h-4 w-4 text-accent" />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate">{p.subjectName}</span>
-                      {!p.active && (
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          Paused
-                        </Badge>
+                return (
+                  <TableRow key={p.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{p.subjectName}</span>
+                        {!p.active && (
+                          <Badge variant="secondary" className="text-xs">
+                            Paused
+                          </Badge>
+                        )}
+                      </div>
+                      {p.notes && (
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">
+                          {p.notes}
+                        </p>
                       )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                      {rowHours > 0 ? `${rowHours} hrs/week` : "No availability set"}
-                      {p.notes && ` · ${p.notes}`}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    {isConfirming ? (
-                      <>
-                        <span className="text-xs text-muted-foreground mr-1">Delete?</span>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="h-7 text-xs px-2"
-                          onClick={() => handleDelete(p.id)}
-                          disabled={isPending}
-                        >
-                          Yes
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs px-2"
-                          onClick={() => setConfirmDeleteId(null)}
-                          disabled={isPending}
-                        >
-                          No
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => openEdit(p)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                          <span className="sr-only">Edit</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => setConfirmDeleteId(p.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span className="sr-only">Delete</span>
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                    </TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {rowHours > 0 ? rowHours : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {isConfirming ? (
+                          <>
+                            <span className="text-xs text-muted-foreground mr-1">
+                              Delete?
+                            </span>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="h-7 text-xs px-2"
+                              onClick={() => handleDelete(p.id)}
+                              disabled={isPending}
+                            >
+                              Yes
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs px-2"
+                              onClick={() => setConfirmDeleteId(null)}
+                              disabled={isPending}
+                            >
+                              No
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => openEdit(p)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span className="sr-only">Edit</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={() => setConfirmDeleteId(p.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span className="sr-only">Delete</span>
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
       </CardContent>
 

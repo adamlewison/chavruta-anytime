@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { completeOnboarding } from "@/server/actions/onboarding";
+import { completeOnboarding, saveIdentityStep } from "@/server/actions/onboarding";
 import type { OnboardingData, Prefill } from "@/components/onboarding/types";
+import type { StepIdentityHandle } from "@/components/onboarding/steps/step-identity";
 
 const STORAGE_KEY = "chavruta-onboarding-data";
-export const TOTAL_STEPS = 6;
+export const TOTAL_STEPS = 7;
 
 function defaultData(prefill?: Prefill): OnboardingData {
   return {
     name: prefill?.name ?? "",
-    bio: "",
+    bio: prefill?.bio ?? "",
     image: prefill?.image ?? null,
     gender: null,
     country: "",
@@ -36,6 +37,7 @@ function getInitialData(prefill?: Prefill): OnboardingData {
           ...base,
           ...parsed,
           name: parsed.name?.trim() ? parsed.name : base.name,
+          bio: parsed.bio?.trim() ? parsed.bio : base.bio,
           image: parsed.image ?? base.image,
           availability: null,
         };
@@ -50,24 +52,26 @@ function getInitialData(prefill?: Prefill): OnboardingData {
 function validateStep(step: number, data: OnboardingData): string | null {
   switch (step) {
     case 1:
-      if (!data.name.trim()) return "Please enter your name";
       return null;
     case 2:
+      if (!data.name.trim()) return "Please enter your name";
+      return null;
+    case 3:
       if (!data.gender) return "Please select your gender";
       if (!data.country) return "Please select your country";
       return null;
-    case 3:
+    case 4:
       if (data.languages.length === 0)
         return "Please select at least one language";
       return null;
-    case 4:
+    case 5:
       if (!data.timezone) return "Please select a timezone";
       return null;
-    case 5:
+    case 6:
       if (data.subjects.length === 0)
         return "Please select at least one subject";
       return null;
-    case 6:
+    case 7:
       return null;
     default:
       return null;
@@ -89,6 +93,8 @@ export function useOnboardingWizard(initialStep: number, prefill?: Prefill) {
   );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const stepIdentityRef = useRef<StepIdentityHandle>(null);
 
   // Save to localStorage on data changes
   useEffect(() => {
@@ -114,13 +120,32 @@ export function useOnboardingWizard(initialStep: number, prefill?: Prefill) {
     [router],
   );
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     const validationError = validateStep(step, data);
     if (validationError) {
       setError(validationError);
       return;
     }
     setError(null);
+
+    if (step === 2) {
+      setSubmitting(true);
+      try {
+        // Auto-upload photo if chosen but not yet uploaded
+        await stepIdentityRef.current?.prepareForNext();
+        // Persist name/bio immediately so it survives a refresh
+        await saveIdentityStep({
+          name: data.name,
+          bio: data.bio,
+          image: data.image,
+        });
+      } catch {
+        // Non-fatal — user can still proceed
+      } finally {
+        setSubmitting(false);
+      }
+    }
+
     if (step < TOTAL_STEPS) {
       goToStep(step + 1, 1);
     }
@@ -160,12 +185,12 @@ export function useOnboardingWizard(initialStep: number, prefill?: Prefill) {
       }
       localStorage.removeItem(STORAGE_KEY);
       await updateSession();
-      window.location.href = "/dashboard";
+      window.location.href = "/dashboard?welcome=1";
     } catch {
       setError("Something went wrong. Please try again.");
       setSubmitting(false);
     }
-  }, [step, data, router, updateSession]);
+  }, [step, data, updateSession]);
 
   return {
     step,
@@ -173,6 +198,7 @@ export function useOnboardingWizard(initialStep: number, prefill?: Prefill) {
     data,
     error,
     submitting,
+    stepIdentityRef,
     handleChange,
     handleNext,
     handleBack,

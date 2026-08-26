@@ -40,6 +40,16 @@ export type DashboardChabura = {
   memberCount: number;
 };
 
+export async function getUserTimezone(userId: string): Promise<string | null> {
+  const row = await db()
+    .select({ timezone: users.timezone })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+    .then((r) => r[0] ?? null);
+  return row?.timezone ?? null;
+}
+
 export async function getAcceptedConnections(userId: string): Promise<DashboardConnection[]> {
   const requesterUser = alias(users, "requester_user");
   const addresseeUser = alias(users, "addressee_user");

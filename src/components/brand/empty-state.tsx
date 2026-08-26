@@ -3,6 +3,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { BeisLetter } from "./beis-letter";
 
+type EmptyStateAction =
+  | { label: string; href: string; onClick?: never }
+  | { label: string; onClick: () => void; href?: never };
+
 export function EmptyState({
   heading,
   description,
@@ -12,7 +16,7 @@ export function EmptyState({
 }: {
   heading: string;
   description: string;
-  action?: { label: string; href: string };
+  action?: EmptyStateAction;
   letter?: string;
   className?: string;
 }) {
@@ -31,9 +35,18 @@ export function EmptyState({
         </h3>
         <p className="text-sm text-muted-foreground">{description}</p>
         {action && (
-          <Button asChild className="bg-accent text-white hover:bg-accent/90">
-            <Link href={action.href}>{action.label}</Link>
-          </Button>
+          action.href ? (
+            <Button asChild className="bg-accent text-white hover:bg-accent/90">
+              <Link href={action.href}>{action.label}</Link>
+            </Button>
+          ) : (
+            <Button
+              className="bg-accent text-white hover:bg-accent/90"
+              onClick={action.onClick}
+            >
+              {action.label}
+            </Button>
+          )
         )}
       </div>
     </div>

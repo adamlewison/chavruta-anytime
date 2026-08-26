@@ -9,9 +9,10 @@ import { ProfileHeader } from "@/components/profile/profile-header";
 import { Pencil, BookOpen } from "lucide-react";
 import { getOwnProfile, getUserSubjectNames } from "@/server/queries/users";
 
-export const metadata: Metadata = {
-  title: "My Profile — ChavrutaAnytime",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const session = await auth();
+  return { title: session?.user?.name ?? "My Profile" };
+}
 
 export default async function ProfilePage() {
   const session = await auth();

@@ -14,5 +14,6 @@ export interface OnboardingData {
 
 export interface Prefill {
   name: string;
+  bio: string;
   image: string | null;
 }

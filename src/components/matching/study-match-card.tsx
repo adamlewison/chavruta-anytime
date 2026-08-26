@@ -108,34 +108,15 @@ export function StudyMatchCard({ match }: StudyMatchCardProps) {
                       borderRadius: "0.2rem",
                     }}
                   />
-                  {match.country}
                 </span>
               )}
             </div>
 
-            {/* Match score row */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                  <Sparkles className="h-3 w-3" />
-                  Match score
-                </span>
-                <span className="flex items-baseline gap-0.5">
-                  <span className={`text-sm font-bold tabular-nums leading-none ${scoreLabelColor(score)}`}>
-                    {score}%
-                  </span>
-                  <span className={`text-[10px] font-medium leading-none ml-1 ${scoreLabelColor(score)}`}>
-                    · {scoreLabel(score)}
-                  </span>
-                </span>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className={`h-full rounded-full bg-gradient-to-r ${scoreColor(score)} transition-all duration-700`}
-                  style={{ width: `${score}%` }}
-                />
-              </div>
-            </div>
+            {match.bio && (
+              <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                {match.bio}
+              </p>
+            )}
           </div>
         </div>
 
@@ -144,12 +125,33 @@ export function StudyMatchCard({ match }: StudyMatchCardProps) {
 
         {/* Body */}
         <div className="px-5 py-4 space-y-3">
-          {match.bio && (
-            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-              {match.bio}
-            </p>
-          )}
-
+          {/* Match score row */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                <Sparkles className="h-3 w-3" />
+                Match score
+              </span>
+              <span className="flex items-baseline gap-0.5">
+                <span
+                  className={`text-sm font-bold tabular-nums leading-none ${scoreLabelColor(score)}`}
+                >
+                  {score}%
+                </span>
+                <span
+                  className={`text-[10px] font-medium leading-none ml-1 ${scoreLabelColor(score)}`}
+                >
+                  · {scoreLabel(score)}
+                </span>
+              </span>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full bg-gradient-to-r ${scoreColor(score)} transition-all duration-700`}
+                style={{ width: `${score}%` }}
+              />
+            </div>
+          </div>
           {match.matched_subject_names.length > 0 && (
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">

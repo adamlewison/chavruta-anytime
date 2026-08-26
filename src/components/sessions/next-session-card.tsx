@@ -13,17 +13,22 @@ export type NextSessionCardSize = "small" | "medium" | "large";
 interface Props {
   session: DashboardSession;
   size?: NextSessionCardSize;
+  timezone?: string;
 }
 
-function formatTimeUntil(minutesUntil: number, startsAt: DateTime): string {
+function formatTimeUntil(minutesUntil: number, startsAt: DateTime, now: DateTime, tz: string): string {
   if (minutesUntil <= 0) return "Starting now";
   if (minutesUntil < 60) return `In ${Math.round(minutesUntil)} minutes`;
-  if (minutesUntil < 1440)
-    return `Tomorrow at ${startsAt.toLocal().toFormat("h:mm a")}`;
-  return startsAt.toLocal().toFormat("EEE, MMM d · h:mm a");
+  const startsLocal = startsAt.setZone(tz);
+  const nowLocal = now.setZone(tz);
+  const dayDiff = startsLocal.startOf("day").diff(nowLocal.startOf("day"), "days").days;
+  if (dayDiff === 0) return `Today at ${startsLocal.toFormat("h:mm a")}`;
+  if (dayDiff === 1) return `Tomorrow at ${startsLocal.toFormat("h:mm a")}`;
+  return startsLocal.toFormat("EEE, MMM d · h:mm a");
 }
 
-export function NextSessionCard({ session, size = "large" }: Props) {
+export function NextSessionCard({ session, size = "large", timezone = "UTC" }: Props) {
+  const tz = timezone;
   const startsAt = DateTime.fromJSDate(session.startsAt, { zone: "utc" });
   const endsAt = DateTime.fromJSDate(session.endsAt, { zone: "utc" });
   const now = DateTime.utc();
@@ -62,7 +67,7 @@ export function NextSessionCard({ session, size = "large" }: Props) {
               />
             ) : (
               <p className="text-xs text-muted-foreground">
-                {formatTimeUntil(minutesUntil, startsAt)}
+                {formatTimeUntil(minutesUntil, startsAt, now, tz)}
               </p>
             )}
             {session.partnerName && (
@@ -91,7 +96,7 @@ export function NextSessionCard({ session, size = "large" }: Props) {
                 />
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  {formatTimeUntil(minutesUntil, startsAt)}
+                  {formatTimeUntil(minutesUntil, startsAt, now, tz)}
                 </p>
               )}
             </div>
@@ -149,7 +154,7 @@ export function NextSessionCard({ session, size = "large" }: Props) {
               />
             ) : (
               <p className="text-sm text-muted-foreground">
-                {formatTimeUntil(minutesUntil, startsAt)}
+                {formatTimeUntil(minutesUntil, startsAt, now, tz)}
               </p>
             )}
           </div>

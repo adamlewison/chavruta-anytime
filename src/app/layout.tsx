@@ -17,12 +17,13 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chavrutaanytime.com";
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://chavrutaanytime.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "ChavrutaAnytime — Find Your Learning Partner",
+    default: "ChavrutaAnytime",
     template: "%s | ChavrutaAnytime",
   },
   description:

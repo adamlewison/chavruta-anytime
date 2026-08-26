@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/brand/empty-state";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Users, BookOpen } from "lucide-react";
+import { Calendar, Users, BookOpen, Sparkles } from "lucide-react";
 import { NextSessionCard } from "@/components/sessions/next-session-card";
 
 export interface DashboardChavruta {
@@ -17,6 +17,8 @@ export interface DashboardChavruta {
 export function DashboardView({
   userName,
   greeting,
+  welcome,
+  timezone,
   nextSession,
   upcomingSessions,
   myChavrutas,
@@ -24,6 +26,8 @@ export function DashboardView({
 }: {
   userName: string;
   greeting: string;
+  welcome?: boolean;
+  timezone?: string;
   nextSession: DashboardSession | null;
   upcomingSessions: DashboardSession[];
   myChavrutas: DashboardChavruta[];
@@ -35,10 +39,36 @@ export function DashboardView({
         {greeting}, {userName}.
       </h1>
 
+      {welcome && (
+        <Card className="border-accent/30 bg-gradient-to-br from-accent/10 to-background">
+          <CardContent className="p-5 flex gap-4 items-start">
+            <Sparkles className="h-5 w-5 text-accent mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">
+                Welcome to Chavruta Anytime!
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Your profile is all set. Click the button below to find a
+                chavruta or join a chabura.
+              </p>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  size="lg"
+                  asChild
+                  className="bg-accent text-white hover:bg-accent/90 font-bold text-base px-6 shadow-md hover:shadow-lg hover:scale-105 transition-all duration-150"
+                >
+                  <Link href="/find">🚀 Let&apos;s Do It!</Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Next session card */}
       {nextSession && (
         <section>
-          <NextSessionCard session={nextSession} size="large" />
+          <NextSessionCard session={nextSession} size="large" timezone={timezone} />
         </section>
       )}
 
@@ -63,12 +93,12 @@ export function DashboardView({
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3" />
                       {DateTime.fromJSDate(occ.startsAt)
-                        .toLocal()
+                        .setZone(timezone ?? "UTC")
                         .toFormat("EEE, MMM d")}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {DateTime.fromJSDate(occ.startsAt)
-                        .toLocal()
+                        .setZone(timezone ?? "UTC")
                         .toFormat("h:mm a")}
                     </div>
                   </CardContent>
