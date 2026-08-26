@@ -1,4 +1,5 @@
-import { neon } from "@neondatabase/serverless";
+import { neon, NeonQueryFunction } from "@neondatabase/serverless";
+import { Pool } from "pg";
 import { readFile } from "fs/promises";
 import { join } from "path";
 
@@ -12,8 +13,50 @@ interface Journal {
   entries: JournalEntry[];
 }
 
+function isLocalUrl(url: string): boolean {
+  return /^postgres(ql)?:\/\/[^/]*(localhost|127\.0\.0\.1)/.test(url);
+}
+
+// Minimal common interface over both clients: tagged-template query + raw query.
+interface SqlClient {
+  query(text: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+  tagged(strings: TemplateStringsArray, ...values: unknown[]): Promise<Record<string, unknown>[]>;
+}
+
+function makeNeonClient(url: string): SqlClient {
+  const sql = neon(url) as NeonQueryFunction<false, false>;
+  return {
+    async query(text) {
+      const rows = await sql.query(text);
+      return { rows: rows as unknown as Record<string, unknown>[] };
+    },
+    async tagged(strings, ...values) {
+      return sql(strings, ...values) as unknown as Promise<Record<string, unknown>[]>;
+    },
+  };
+}
+
+function makePgClient(url: string): SqlClient {
+  const pool = new Pool({ connectionString: url });
+  return {
+    async query(text) {
+      const result = await pool.query(text);
+      return { rows: result.rows };
+    },
+    async tagged(strings, ...values) {
+      const text = strings.reduce(
+        (acc, part, i) => acc + part + (i < values.length ? `$${i + 1}` : ""),
+        "",
+      );
+      const result = await pool.query(text, values);
+      return result.rows;
+    },
+  };
+}
+
 async function runMigrations() {
-  const sql = neon(process.env.DATABASE_URL!);
+  const url = process.env.DATABASE_URL!;
+  const sql = isLocalUrl(url) ? makePgClient(url) : makeNeonClient(url);
 
   // Ensure drizzle's migration tracking table exists (same schema drizzle-kit uses)
   await sql.query(`CREATE SCHEMA IF NOT EXISTS drizzle`);
@@ -29,20 +72,20 @@ async function runMigrations() {
     await readFile(join(MIGRATIONS_DIR, "meta/_journal.json"), "utf-8"),
   );
 
-  let appliedRows = await sql`SELECT hash FROM drizzle.__drizzle_migrations`;
+  let appliedRows = await sql.tagged`SELECT hash FROM drizzle.__drizzle_migrations`;
 
   // Bootstrap: if the tracking table is empty but the DB already has a schema
   // (e.g. it was set up with db:push before we introduced this runner), mark all
   // prior journal entries as applied so we don't re-run them.
   if (appliedRows.length === 0 && journal.entries.length > 1) {
-    const [existing] = await sql`
+    const [existing] = await sql.tagged`
       SELECT 1 FROM information_schema.tables
       WHERE table_schema = 'public' AND table_name = 'users'
     `;
     if (existing) {
       const priorEntries = journal.entries.slice(0, -1);
       for (const entry of priorEntries) {
-        await sql`
+        await sql.tagged`
           INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
           VALUES (${entry.tag}, ${Date.now()})
         `;
@@ -50,7 +93,7 @@ async function runMigrations() {
       console.log(
         `Bootstrapped tracking table with ${priorEntries.length} pre-existing migration(s).`,
       );
-      appliedRows = await sql`SELECT hash FROM drizzle.__drizzle_migrations`;
+      appliedRows = await sql.tagged`SELECT hash FROM drizzle.__drizzle_migrations`;
     }
   }
 
@@ -74,7 +117,7 @@ async function runMigrations() {
       await sql.query(statement);
     }
 
-    await sql`
+    await sql.tagged`
       INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
       VALUES (${entry.tag}, ${Date.now()})
     `;
